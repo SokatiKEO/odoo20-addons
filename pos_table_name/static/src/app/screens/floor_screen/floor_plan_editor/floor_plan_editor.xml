@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_table_name.floor_screen_shape" t-inherit="pos.floor_screen_shape" t-inherit-mode="extension">
+        <xpath expr="//span[hasclass('o_fp_table_number')]" position="attributes">
+            <attribute name="t-out">shape.displayName</attribute>
+        </xpath>
+    </t>
+</templates>
