@@ -1,0 +1,19 @@
+.o_pdis_checkbox {
+    user-select: none;
+    .form-check-input {
+        cursor: pointer;
+    }
+}
+
+.o_pdis_preview_btn {
+    border-radius: 4px;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    opacity: 0.85;
+    transition: all 0.15s ease-in-out;
+    &:hover {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+}
+

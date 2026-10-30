@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="pos_enterprise.Order" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('o_pdis_table-info')]" position="inside">
+            <div t-if="this.tableName" class="o_pdis_table_badge badge bg-primary text-white rounded small fw-bold d-inline-flex align-items-center order-first me-2" title="Table">
+                <i class="oi oi-fw me-1" data-icon="table_restaurant" style="font-size: 0.85rem; vertical-align: middle;"/>
+                <span t-out="this.tableName"/>
+            </div>
+        </xpath>
+    </t>
+</templates>
+

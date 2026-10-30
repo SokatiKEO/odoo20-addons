@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_kitchen_display_screen.ProductImageDialog">
+        <Dialog size="this.props.size || 'md'" title="this.props.title">
+            <div class="text-center p-3">
+                <div t-if="!this.state.imageError" class="d-flex justify-content-center align-items-center rounded bg-light p-2" style="min-height: 250px; max-height: 480px;">
+                    <img
+                        t-att-src="this.props.imageUrl"
+                        t-att-alt="this.props.productName"
+                        class="img-fluid rounded shadow-sm"
+                        style="max-height: 450px; max-width: 100%; object-fit: contain;"
+                        t-on-error="this.onImageError"
+                    />
+                </div>
+                <div t-else="" class="alert alert-secondary d-flex flex-column align-items-center justify-content-center py-5 my-2">
+                    <i class="oi oi-fw fs-1 text-muted mb-3" data-icon="image"/>
+                    <p class="m-0 fs-5 text-muted">No image available for <strong t-out="this.props.productName"/></p>
+                </div>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary px-4" t-on-click="this.props.close">
+                    Close
+                </button>
+            </t>
+        </Dialog>
+    </t>
+</templates>
+

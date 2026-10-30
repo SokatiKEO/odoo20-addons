@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="pos_enterprise.Orderline" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('o_pdis_orderline_infos')]" position="attributes">
+            <attribute name="class" add="align-items-center" separator=" "/>
+        </xpath>
+        <xpath expr="//div[hasclass('o_pdis_quantity')]" position="before">
+            <div class="o_pdis_checkbox ps-2 pe-1 d-flex align-items-center flex-shrink-0" title="Toggle Done">
+                <input
+                    type="checkbox"
+                    class="form-check-input m-0 cursor-pointer"
+                    style="width: 1.25rem; height: 1.25rem; pointer-events: none;"
+                    t-att-checked="this.props.orderline.todo === false"
+                    tabindex="-1"
+                />
+            </div>
+        </xpath>
+        <xpath expr="//div[hasclass('o_pdis_product-name')]" position="after">
+            <button
+                type="button"
+                class="btn btn-sm btn-outline-secondary py-0 px-2 ms-2 o_pdis_preview_btn d-inline-flex align-items-center flex-shrink-0"
+                title="Preview Product Image"
+                t-on-click.stop="this.previewImage"
+            >
+                <i class="oi oi-fw me-1" data-icon="image" style="font-size: 1rem; vertical-align: middle;"/>
+                <span class="small d-none d-sm-inline">Preview</span>
+            </button>
+        </xpath>
+    </t>
+</templates>
+
