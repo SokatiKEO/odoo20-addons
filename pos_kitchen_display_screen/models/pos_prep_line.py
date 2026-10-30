@@ -77,6 +77,7 @@ class PosPrepLine(models.Model):
                 configs_to_notify[config] = []
 
             status = prep_line._get_prep_status()
+            stage = prep_line.stage_id
 
             configs_to_notify[config].append({
                 "order_id": order.id,
@@ -84,20 +85,25 @@ class PosPrepLine(models.Model):
                 "line_id": order_line.id if order_line else None,
                 "line_uuid": order_line.uuid if order_line else None,
                 "status": status,
-                "stage_name": prep_line.stage_id.name if prep_line.stage_id else "",
+                "stage_id": stage.id if stage else None,
+                "stage_name": stage.name if stage else "",
+                "stage_color": stage.color if stage else "",
             })
 
             # If this is a child line of a combo, also notify the combo parent orderline
             if prep_line.combo_parent_id and prep_line.combo_parent_id.pos_order_line_id:
                 parent_prep = prep_line.combo_parent_id
                 parent_line = parent_prep.pos_order_line_id
+                parent_stage = parent_prep.stage_id or stage
                 configs_to_notify[config].append({
                     "order_id": order.id,
                     "order_uuid": getattr(order, "uuid", None),
                     "line_id": parent_line.id,
                     "line_uuid": parent_line.uuid,
                     "status": parent_prep._get_prep_status(),
-                    "stage_name": "",
+                    "stage_id": parent_stage.id if parent_stage else None,
+                    "stage_name": parent_stage.name if parent_stage else "",
+                    "stage_color": parent_stage.color if parent_stage else "",
                 })
 
         for config, updates in configs_to_notify.items():

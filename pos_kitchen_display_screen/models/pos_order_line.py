@@ -15,6 +15,37 @@ class PosOrderLine(models.Model):
         recursive=True,
         help="Real-time preparation status from Kitchen Display or manual cashier service: 'ready', 'served', or False",
     )
+    prep_stage_id = fields.Many2one(
+        "pos.prep.stage",
+        string="Preparation Stage",
+        compute="_compute_prep_stage_id",
+        recursive=True,
+        help="Dynamic KDS preparation stage assigned to this item",
+    )
+
+    @api.depends("prep_line_ids.stage_id", "prep_line_ids.cancelled", "manual_served", "combo_line_ids.prep_stage_id")
+    def _compute_prep_stage_id(self):
+        last_stage = self.env["pos.prep.stage"].search([], order="sequence desc, id desc", limit=1)
+        for line in self:
+            if line.manual_served:
+                line.prep_stage_id = last_stage
+                continue
+            if line.combo_line_ids:
+                stages = [c.prep_stage_id for c in line.combo_line_ids if c.prep_stage_id]
+                if stages and all(s == last_stage for s in stages):
+                    line.prep_stage_id = last_stage
+                elif stages:
+                    stages_sorted = sorted(stages, key=lambda s: s.sequence)
+                    line.prep_stage_id = stages_sorted[0]
+                else:
+                    line.prep_stage_id = False
+                continue
+
+            active_prep = line.prep_line_ids.filtered(lambda pl: not pl.cancelled and pl.stage_id)
+            if active_prep:
+                line.prep_stage_id = active_prep[-1].stage_id
+            else:
+                line.prep_stage_id = False
 
     @api.depends("manual_served", "prep_line_ids.stage_id", "prep_line_ids.todo", "prep_line_ids.cancelled", "combo_line_ids.prep_status")
     def _compute_prep_status(self):
@@ -63,9 +94,9 @@ class PosOrderLine(models.Model):
 
     @api.model
     def _load_pos_data_fields(self, config):
-        """Include prep_status and manual_served in the initial data loaded by POS sessions."""
+        """Include prep_status, prep_stage_id, and manual_served in the initial data loaded by POS sessions."""
         fields = super()._load_pos_data_fields(config)
-        for field in ("prep_status", "manual_served"):
+        for field in ("prep_status", "prep_stage_id", "manual_served"):
             if field not in fields:
                 fields.append(field)
         return fields

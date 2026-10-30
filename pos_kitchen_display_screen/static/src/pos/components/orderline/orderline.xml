@@ -2,39 +2,38 @@
 <templates id="template" xml:space="preserve">
     <t t-name="pos_kitchen_display_screen.PosOrderline" t-inherit="point_of_sale.Orderline" t-inherit-mode="extension">
         <xpath expr="//t[@t-out='vals.name']" position="after">
-            <!-- 1. Item is Served -->
-            <t t-if="this.line.isPrepServed">
-                <!-- If sent to kitchen: read-only badge (cashier cannot click) -->
-                <span t-if="this.line.isSentToKitchen"
-                      class="badge rounded-pill text-bg-success ms-2 align-middle fw-bold text-nowrap pos-prep-badge pos-prep-badge-served"
-                      title="Served by Kitchen">
-                    <i class="oi me-1" data-icon="check"/>Served
-                </span>
-                <!-- If non-kitchen item: clickable badge so cashier can un-serve if needed -->
-                <span t-else=""
-                      class="badge rounded-pill text-bg-success ms-2 align-middle fw-bold text-nowrap pos-prep-badge pos-prep-badge-served pos-prep-badge-clickable cursor-pointer"
-                      role="button"
-                      title="Served (click to un-serve)"
-                      t-on-click.stop="() => this.line.toggleServed()">
-                    <i class="oi me-1" data-icon="check"/>Served
-                </span>
-            </t>
+            <t t-set="stageDisplay" t-value="this.line.prepStageDisplay"/>
 
-            <!-- 2. Item is Ready from Kitchen: read-only badge (cashier cannot click to serve/un-serve) -->
-            <span t-elif="this.line.isPrepReady"
-                  class="badge rounded-pill text-bg-warning ms-2 align-middle fw-bold text-nowrap pos-prep-badge pos-prep-badge-ready"
-                  title="Ready for pickup">
-                <i class="oi me-1" data-icon="restaurant"/>Ready
-            </span>
-
-            <!-- 3. Non-kitchen item not yet served: Serve button for cashier -->
-            <button t-elif="!this.line.isSentToKitchen"
+            <!-- 1. Non-kitchen item not yet served: Serve button for cashier -->
+            <button t-if="!this.line.isSentToKitchen and !this.line.isPrepServed"
                     type="button"
                     class="btn btn-sm btn-outline-success ms-2 py-0 px-2 align-middle fw-semibold text-nowrap pos-serve-btn"
                     title="Mark as Served"
                     t-on-click.stop="() => this.line.toggleServed()">
                 <i class="oi me-1" data-icon="check" style="font-size: 0.75rem; vertical-align: middle;"/>Serve
             </button>
+
+            <!-- 2. Non-kitchen item marked served: Clickable badge so cashier can un-serve if needed -->
+            <span t-elif="!this.line.isSentToKitchen and this.line.isPrepServed"
+                  class="badge rounded-pill ms-2 align-middle fw-bold text-nowrap pos-prep-badge pos-prep-badge-clickable cursor-pointer"
+                  t-attf-style="background-color: {{ stageDisplay ? stageDisplay.color : '#198754' }}; color: {{ stageDisplay ? stageDisplay.textColor : '#ffffff' }}; border: 1px solid {{ stageDisplay ? stageDisplay.color : '#146c43' }};"
+                  role="button"
+                  title="Served (click to un-serve)"
+                  t-on-click.stop="() => this.line.toggleServed()">
+                <i class="oi me-1" data-icon="check"/><t t-out="stageDisplay ? stageDisplay.name : 'Served'"/>
+            </span>
+
+            <!-- 3. Kitchen-sent items: Dynamic read-only preparation stage badge with stage color & name -->
+            <span t-elif="this.line.isSentToKitchen and stageDisplay"
+                  class="badge rounded-pill ms-2 align-middle fw-bold text-nowrap pos-prep-badge"
+                  t-attf-class="{{ this.line.isPrepReady ? 'table-stage-ready' : '' }}"
+                  t-attf-style="background-color: {{ stageDisplay.color }}; color: {{ stageDisplay.textColor }}; border: 1px solid {{ stageDisplay.color }};"
+                  t-att-title="stageDisplay.name">
+                <i t-if="this.line.isPrepServed" class="oi me-1" data-icon="check"/>
+                <i t-elif="this.line.isPrepReady" class="oi me-1" data-icon="restaurant"/>
+                <i t-else="" class="oi me-1" data-icon="schedule"/>
+                <t t-out="stageDisplay.name"/>
+            </span>
         </xpath>
     </t>
 </templates>
