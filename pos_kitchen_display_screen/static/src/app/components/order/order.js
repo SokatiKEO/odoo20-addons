@@ -8,10 +8,9 @@ patch(Order.prototype, {
 
     get order_name() {
         const origName = super.order_name;
-        if (this.tableName) {
+        if (this.tableName && this.tableName !== origName) {
             return `${this.tableName} - ${origName}`;
         }
         return origName;
     },
 });
-
