@@ -472,8 +472,9 @@ patch(PosStore.prototype, {
             }
             const addedQty = values.qty ?? 1;
             const targetWhId = values.ab_warehouse_id?.id ?? values.ab_warehouse_id;
-            // When clicking a product card and stock is exhausted, silently prevent adding more
+            // Stock exhausted: block the line and tell the cashier why
             if (addedQty > 0 && this.stock.denyOrder(product, addedQty, targetWhId, { order })) {
+                this.stock.showDenyPopup(product, targetWhId);
                 return false;
             }
         }
