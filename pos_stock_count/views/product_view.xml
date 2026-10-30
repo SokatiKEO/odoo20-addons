@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_template_form_view" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.pos_stock_count</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="point_of_sale.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//group[@name='pos']" position="inside">
+                <field name="ab_stock_out_of_stock" invisible="not available_in_pos or not is_storable"/>
+                <field name="ab_stock_deny" invisible="not available_in_pos or not is_storable or ab_stock_out_of_stock"/>
+                <field name="ab_stock_deny_qty" invisible="not available_in_pos or not is_storable or ab_stock_out_of_stock or ab_stock_deny != 'always'"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

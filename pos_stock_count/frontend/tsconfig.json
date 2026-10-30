@@ -1,0 +1,15 @@
+{
+  "include": ["src/**/*"],
+  "exclude": ["src/**/__tests__/*"],
+  "compilerOptions": {
+    "types": [],
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "skipLibCheck": true,
+    "composite": true,
+    "baseUrl": ".",
+    "target": "es2016",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "strictPropertyInitialization": false
+  }
+}

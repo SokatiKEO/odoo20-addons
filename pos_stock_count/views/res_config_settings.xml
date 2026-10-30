@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.pos_stock_count</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="pos_stock.res_config_settings_view_form" />
+        <field name="arch" type="xml">
+            <block id="pos_inventory_section" position="after">
+                <block title="PoS Stock" id="ab_pos_stock_section">
+
+                    <setting string="Enable Stock" help="Enable to display stocks inside the PoS">
+                        <field name="ab_stock_display" />
+                        <div class="content-group mt16" invisible="not ab_stock_display">
+                            <div class="row">
+                                <label string="Quantity Type" for="ab_stock_qty_type" class="col-lg-3 o_light_label" />
+                                <field name="ab_stock_qty_type" />
+                            </div>
+                            <div class="row">
+                                <label string="Low Stock Warning" for="ab_stock_low_stock" class="col-lg-3 o_light_label" />
+                                <field name="ab_stock_low_stock" />
+                            </div>
+                            <div class="row">
+                                <label string="Position" for="ab_stock_position" class="col-lg-3 o_light_label" />
+                                <field name="ab_stock_position" />
+                            </div>
+                        </div>
+                    </setting>
+
+                    <setting string="Select Warehouse" help="Switch between different warehouses inside the PoS">
+                        <field name="ab_stock_allow_select_wh" />
+                        <div class="content-group mt16" invisible="not ab_stock_allow_select_wh">
+                            <div class="row">
+                                <label string="Additional Warehouses" for="ab_stock_warehouse_ids" class="col-lg-4 o_light_label" />
+                                <field name="ab_stock_warehouse_ids" widget="many2many_tags" />
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-lg-8">
+                                    <label string="Show stock of other warehouses when out of stock" for="ab_stock_show_Substitutes" class="o_light_label" />
+                                </div>
+                                <div class="col-lg-4">
+                                    <field name="ab_stock_show_Substitutes" />
+                                </div>
+                            </div>
+                        </div>
+                    </setting>
+
+                    <setting title="Deny Order" string="Deny Order" help="Deny order when product stock is equal to or falls below the specified quantity">
+                        <field name="ab_stock_deny" />
+                        <div class="content-group mt16" invisible="not ab_stock_deny">
+                            <div class="row">
+                                <label string="Quantity" for="ab_stock_deny_qty" class="col-lg-3 o_light_label" />
+                                <field name="ab_stock_deny_qty" />
+                            </div>
+                        </div>
+                    </setting>
+
+                </block>
+            </block>
+        </field>
+    </record>
+</odoo>

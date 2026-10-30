@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <record id="base.main_company" model="res.company">
+            <field name="point_of_sale_update_stock_quantities">real</field>
+        </record>
+        <function model="ab.stock.demo" name="init_pos_Configs"/>
+    </data>
+</odoo>

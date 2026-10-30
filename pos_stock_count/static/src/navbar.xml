@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="point_of_sale.Navbar" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('status-buttons')]" position="inside">
+            <div t-if="this.showWhButton" class="oe_status btn btn-light btn-lg lh-lg me-1">
+                <Dropdown>
+                    <button class="btn btn-light btn-sm p-0 border-0">
+                        <span t-if="!this.ui.isSmall" class="me-1" t-esc="this.selectedWh.code" />
+                        <i class="fa fa-home" aria-hidden="true"></i>
+                    </button>
+                    <t t-set-slot="content">
+                        <t t-foreach="this.abStockWarehouses" t-as="warehouse" t-key="warehouse.id">
+                            <DropdownItem onSelected="() => this.onWarehouseButtonClick(warehouse)">
+                                <div t-esc="`${warehouse.name} (${warehouse.code})`" />
+                            </DropdownItem>
+                        </t>
+                    </t>
+                </Dropdown>
+            </div>
+        </xpath>
+    </t>
+</templates>
