@@ -22,6 +22,65 @@ class PosOrderLine(models.Model):
         recursive=True,
         help="Dynamic KDS preparation stage assigned to this item",
     )
+    prep_sent_time = fields.Datetime(
+        string="Sent to Kitchen Time",
+        compute="_compute_prep_times",
+        recursive=True,
+        help="Timestamp when the order line was sent to the kitchen",
+    )
+    prep_stage_change_time = fields.Datetime(
+        string="Stage Change Time",
+        compute="_compute_prep_times",
+        recursive=True,
+        help="Timestamp when the preparation stage was last changed",
+    )
+    prep_stage_name = fields.Char(
+        string="Preparation Stage Name",
+        compute="_compute_prep_stage_display",
+        recursive=True,
+        help="Localized display name of the current preparation stage",
+    )
+    prep_stage_color = fields.Char(
+        string="Preparation Stage Color",
+        compute="_compute_prep_stage_display",
+        recursive=True,
+        help="Hex color code of the current preparation stage",
+    )
+
+    @api.depends(
+        "prep_line_ids.create_date",
+        "prep_line_ids.last_stage_change",
+        "prep_line_ids.cancelled",
+        "manual_served",
+        "write_date",
+        "combo_line_ids.prep_sent_time",
+        "combo_line_ids.prep_stage_change_time",
+    )
+    def _compute_prep_times(self):
+        """Compute timestamp when order line was sent to kitchen and when its stage changed."""
+        for line in self:
+            if line.manual_served:
+                line.prep_sent_time = line.create_date or fields.Datetime.now()
+                line.prep_stage_change_time = line.write_date or line.create_date or fields.Datetime.now()
+                continue
+
+            if line.combo_line_ids:
+                sent_times = [c.prep_sent_time for c in line.combo_line_ids if c.prep_sent_time]
+                stage_times = [c.prep_stage_change_time for c in line.combo_line_ids if c.prep_stage_change_time]
+                line.prep_sent_time = min(sent_times) if sent_times else False
+                line.prep_stage_change_time = max(stage_times) if stage_times else False
+                continue
+
+            active_prep = line.prep_line_ids.filtered(lambda pl: not pl.cancelled)
+            if active_prep:
+                sent_dates = [pl.create_date for pl in active_prep if pl.create_date]
+                line.prep_sent_time = min(sent_dates) if sent_dates else False
+
+                stage_dates = [pl.last_stage_change for pl in active_prep if pl.last_stage_change]
+                line.prep_stage_change_time = max(stage_dates) if stage_dates else (line.prep_sent_time or False)
+            else:
+                line.prep_sent_time = False
+                line.prep_stage_change_time = False
 
     @api.depends("prep_line_ids.stage_id", "prep_line_ids.cancelled", "manual_served", "combo_line_ids.prep_stage_id")
     def _compute_prep_stage_id(self):
@@ -92,11 +151,75 @@ class PosOrderLine(models.Model):
             else:
                 line.prep_status = False
 
+    @api.depends(
+        "prep_stage_id",
+        "prep_status",
+        "manual_served",
+        "combo_line_ids.prep_stage_name",
+        "combo_line_ids.prep_stage_color",
+    )
+    def _compute_prep_stage_display(self):
+        """Compute localized stage name and hex color code for UI display."""
+        last_stage = self.env["pos.prep.stage"].search([], order="sequence desc, id desc", limit=1)
+        first_stage = self.env["pos.prep.stage"].search([], order="sequence, id", limit=1)
+        for line in self:
+            if line.manual_served or line.prep_status == "served":
+                line.prep_stage_name = last_stage.name if last_stage else "Served"
+                line.prep_stage_color = last_stage.color if last_stage else "#59C629"
+            elif line.prep_status == "ready":
+                line.prep_stage_name = line.prep_stage_id.name if line.prep_stage_id else "Ready"
+                line.prep_stage_color = (line.prep_stage_id.color if line.prep_stage_id else False) or "#008bf5"
+            elif line.prep_stage_id:
+                line.prep_stage_name = line.prep_stage_id.name
+                line.prep_stage_color = line.prep_stage_id.color or "#C8C9CB"
+            elif line.prep_line_ids:
+                line.prep_stage_name = first_stage.name if first_stage else "To cook"
+                line.prep_stage_color = first_stage.color if first_stage else "#C8C9CB"
+            else:
+                line.prep_stage_name = False
+                line.prep_stage_color = False
+
+    def write(self, vals):
+        """Broadcast state updates to self-order when cashier manually serves an item."""
+        res = super().write(vals)
+        if "manual_served" in vals:
+            for line in self:
+                if line.order_id and line.order_id.config_id:
+                    line.order_id.config_id._notify("ORDER_STATE_CHANGED", {})
+        return res
+
     @api.model
     def _load_pos_data_fields(self, config):
         """Include prep_status, prep_stage_id, and manual_served in the initial data loaded by POS sessions."""
         fields = super()._load_pos_data_fields(config)
-        for field in ("prep_status", "prep_stage_id", "manual_served"):
+        extra = (
+            "prep_status",
+            "prep_stage_id",
+            "prep_stage_name",
+            "prep_stage_color",
+            "manual_served",
+            "prep_sent_time",
+            "prep_stage_change_time",
+        )
+        for field in extra:
+            if field not in fields:
+                fields.append(field)
+        return fields
+
+    @api.model
+    def _load_pos_self_data_fields(self, config):
+        """Include preparation status, stage name, color, and timestamps in self-order lines."""
+        fields = super()._load_pos_self_data_fields(config)
+        extra = [
+            "prep_status",
+            "prep_stage_id",
+            "prep_stage_name",
+            "prep_stage_color",
+            "prep_sent_time",
+            "prep_stage_change_time",
+            "manual_served",
+        ]
+        for field in extra:
             if field not in fields:
                 fields.append(field)
         return fields

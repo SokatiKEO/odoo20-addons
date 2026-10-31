@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
     <t t-name="pos_kitchen_display_screen.PosOrderline" t-inherit="point_of_sale.Orderline" t-inherit-mode="extension">
+        <xpath expr="//li[hasclass('orderline')]" position="attributes">
+            <attribute name="t-attf-style">{{ this.line.orderLineStyle }}</attribute>
+        </xpath>
         <xpath expr="//t[@t-out='vals.name']" position="after">
             <t t-set="stageDisplay" t-value="this.line.prepStageDisplay"/>
 
@@ -10,7 +13,7 @@
                     class="btn btn-sm btn-outline-success ms-2 py-0 px-2 align-middle fw-semibold text-nowrap pos-serve-btn"
                     title="Mark as Served"
                     t-on-click.stop="() => this.line.toggleServed()">
-                <i class="oi me-1" data-icon="check" style="font-size: 0.75rem; vertical-align: middle;"/>Serve
+                <i class="oi me-1" style="font-size: 0.75rem; vertical-align: middle;"/>To Serve
             </button>
 
             <!-- 2. Non-kitchen item marked served: Clickable badge so cashier can un-serve if needed -->
@@ -18,7 +21,7 @@
                   class="badge rounded-pill ms-2 align-middle fw-bold text-nowrap pos-prep-badge pos-prep-badge-clickable cursor-pointer"
                   t-attf-style="background-color: {{ stageDisplay ? stageDisplay.color : '#198754' }}; color: {{ stageDisplay ? stageDisplay.textColor : '#ffffff' }}; border: 1px solid {{ stageDisplay ? stageDisplay.color : '#146c43' }};"
                   role="button"
-                  title="Served (click to un-serve)"
+                  t-att-title="this.line.prepStageTooltip || 'Served (click to un-serve)'"
                   t-on-click.stop="() => this.line.toggleServed()">
                 <i class="oi me-1" data-icon="check"/><t t-out="stageDisplay ? stageDisplay.name : 'Served'"/>
             </span>
@@ -28,11 +31,28 @@
                   class="badge rounded-pill ms-2 align-middle fw-bold text-nowrap pos-prep-badge"
                   t-attf-class="{{ this.line.isPrepReady ? 'table-stage-ready' : '' }}"
                   t-attf-style="background-color: {{ stageDisplay.color }}; color: {{ stageDisplay.textColor }}; border: 1px solid {{ stageDisplay.color }};"
-                  t-att-title="stageDisplay.name">
+                  t-att-title="this.line.prepStageTooltip || stageDisplay.name">
                 <i t-if="this.line.isPrepServed" class="oi me-1" data-icon="check"/>
                 <i t-elif="this.line.isPrepReady" class="oi me-1" data-icon="restaurant"/>
                 <i t-else="" class="oi me-1" data-icon="schedule"/>
                 <t t-out="stageDisplay.name"/>
+            </span>
+
+            <!-- 4. Preparation Timestamp & Cashier Name -->
+            <span t-if="this.line.prepStageTimeDisplay or this.line.cashierName"
+                  class="d-block pos-prep-time-row small text-muted mt-1">
+                <span t-if="this.line.prepStageTimeDisplay"
+                      class="d-inline-flex align-items-center me-2"
+                      t-att-title="stageDisplay ? stageDisplay.name : 'Time'">
+                    <i class="oi me-1" data-icon="schedule" style="font-size: 0.65rem;"/>
+                    <t t-out="this.line.prepStageTimeDisplay"/>
+                </span>
+                <span t-if="this.line.cashierName"
+                      class="d-inline-flex align-items-center text-truncate"
+                      title="Cashier">
+                    <i class="oi me-1" data-icon="user" style="font-size: 0.65rem;"/>
+                    <t t-out="this.line.cashierName"/>
+                </span>
             </span>
         </xpath>
     </t>

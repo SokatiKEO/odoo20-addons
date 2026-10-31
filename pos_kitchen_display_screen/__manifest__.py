@@ -14,7 +14,7 @@ Features:
 """,
     "author": "",
     "license": "LGPL-3",
-    "depends": ["pos_enterprise", "pos_restaurant", "pos_table_name"],
+    "depends": ["pos_enterprise", "pos_restaurant", "pos_table_name", "pos_self_order"],
     "data": [],
     "assets": {
         "pos_preparation_display.assets": [
@@ -22,6 +22,9 @@ Features:
         ],
         "point_of_sale._assets_pos": [
             "pos_kitchen_display_screen/static/src/pos/**/*",
+        ],
+        "pos_self_order.assets": [
+            "pos_kitchen_display_screen/static/src/self_order/**/*",
         ],
     },
     "installable": True,

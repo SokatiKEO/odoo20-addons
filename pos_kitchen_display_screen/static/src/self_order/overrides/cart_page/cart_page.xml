@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_kitchen_display_screen.CartPage" t-inherit="pos_self_order.CartPage" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('cart_container')]/h1" position="replace">
+            <h1 class="ms-3 ms-sm-0 mb-3" t-out="this.orderTitle"/>
+        </xpath>
+
+        <xpath expr="//div[hasclass('text-break') and hasclass('fs-4')]" position="after">
+            <div t-if="this.getLineStageName(line)" class="d-flex align-items-center gap-2 mt-1 mb-1">
+                <span class="badge py-1 px-2 rounded-pill text-white"
+                      t-att-style="'background-color: ' + this.getLineStageColor(line) + ' !important; font-size: 0.75rem;'">
+                    <t t-out="this.getLineStageName(line)"/>
+                </span>
+                <span t-if="line.prep_stage_change_time || line.prep_sent_time" class="text-muted small">
+                    <t t-out="this.formatTime(line.prep_stage_change_time || line.prep_sent_time)"/>
+                </span>
+            </div>
+        </xpath>
+    </t>
+</templates>
+

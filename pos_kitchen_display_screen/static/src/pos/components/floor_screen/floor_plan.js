@@ -56,9 +56,9 @@ patch(FloorPlan.prototype, {
                     countsByStageId[lastStage.id] += qty;
                 } else if (line.isPrepReady) {
                     const readyStage =
-                        stageModels.find((s) => s.name?.toLowerCase().includes("ready")) ||
-                        stageModels[1] ||
-                        firstStage;
+                    stageModels.length > 2
+                        ? stageModels[stageModels.length - 2]
+                        : (stageModels[1] || firstStage);
                     countsByStageId[readyStage.id] += qty;
                 } else if (line.isSentToKitchen) {
                     countsByStageId[firstStage.id] += qty;
@@ -72,8 +72,7 @@ patch(FloorPlan.prototype, {
             .map((stage) => {
                 const color = stage.color || "#60A8FF";
                 const isReady =
-                    stage.name?.toLowerCase().includes("ready") ||
-                    (stageModels.length > 2 && stage.id === stageModels[1].id);
+                stage.id !== firstStage.id && stage.id !== lastStage.id;
                 return {
                     id: stage.id,
                     name: stage.name,

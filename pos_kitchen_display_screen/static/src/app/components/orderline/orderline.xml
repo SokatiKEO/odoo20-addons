@@ -23,8 +23,20 @@
                 t-on-click.stop="this.previewImage"
             >
                 <i class="oi oi-fw me-1" data-icon="image" style="font-size: 1rem; vertical-align: middle;"/>
-                <span class="small d-none d-sm-inline">Preview</span>
+                <span class="small d-none d-sm-inline">View</span>
             </button>
+        </xpath>
+        <xpath expr="//div[hasclass('o_pdis_orderline_infos')]" position="after">
+            <div t-if="this.stageTimeDisplay or this.cashierName" class="ms-4 small text-muted d-flex align-items-center gap-2 pb-1" style="font-size: 0.72rem;">
+                <span t-if="this.stageTimeDisplay" t-att-title="this.stageName || 'Time'">
+                    <i class="oi me-1" data-icon="schedule" style="font-size: 0.65rem;"/>
+                    <t t-out="this.stageTimeDisplay"/>
+                </span>
+                <span t-if="this.cashierName" title="Cashier">
+                    <i class="oi me-1" data-icon="user" style="font-size: 0.65rem;"/>
+                    <t t-out="this.cashierName"/>
+                </span>
+            </div>
         </xpath>
     </t>
 </templates>

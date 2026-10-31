@@ -1,5 +1,8 @@
 import { PosOrderline } from "@point_of_sale/app/models/pos_order_line";
 import { patch } from "@web/core/utils/patch";
+import { deserializeDateTime, serializeDateTime } from "@web/core/l10n/dates";
+
+const { DateTime } = luxon;
 
 patch(PosOrderline.prototype, {
     get isSentToKitchen() {
@@ -38,9 +41,11 @@ patch(PosOrderline.prototype, {
         }
         return this.prep_status === "served";
     },
-    get currentPrepStage() {
+    _getSortedPrepStages() {
         let stageModels = this.models?.["pos.prep.stage"]
-            ? [...this.models["pos.prep.stage"].getAll()].sort((a, b) => a.sequence - b.sequence)
+            ? [...this.models["pos.prep.stage"].getAll()].sort(
+                (a, b) => (a.sequence ?? 0) - (b.sequence ?? 0) || a.id - b.id
+            )
             : [];
         if (!stageModels.length) {
             stageModels = [
@@ -49,7 +54,82 @@ patch(PosOrderline.prototype, {
                 { id: 3, name: "Completed", color: "#59C629", sequence: 2 },
             ];
         }
+        return stageModels;
+    },
+    get isProgressedPrepStage() {
+        if (this.manual_served || this.isPrepServed) {
+            return true;
+        }
+        if (this.isPrepReady || this.prep_status === "ready") {
+            return true;
+        }
+        if (this.combo_line_ids?.length) {
+            return this.combo_line_ids.some((child) => child.isProgressedPrepStage);
+        }
+        const stage = this.currentPrepStage;
+        if (!stage) {
+            return false;
+        }
+        const stageModels = this._getSortedPrepStages();
+        const firstStage = stageModels[0];
+        if (firstStage && stage.id !== firstStage.id) {
+            return true;
+        }
+        return false;
+    },
+    canBeMergedWith(orderline) {
+        if (this.isProgressedPrepStage || orderline.isProgressedPrepStage) {
+            return false;
+        }
+        if (this.currentPrepStage?.id !== orderline.currentPrepStage?.id) {
+            return false;
+        }
+        return super.canBeMergedWith(orderline);
+    },
+    setQuantity(quantity, keep_price) {
+        const quant =
+            typeof quantity === "number" ? quantity : parseFloat("" + (quantity ? quantity : 0));
 
+        // When a line is in a progressed preparation stage (e.g. Ready, Served, etc.)
+        // and quantity is increased, split the extra quantity into a new orderline in the initial stage ("To cook")
+        if (quant > this.qty && this.isProgressedPrepStage && this.order_id) {
+            const extraQty = quant - this.qty;
+            const order = this.order_id;
+            const newLine = this.models["pos.order.line"].create({
+                product_id: this.product_id,
+                order_id: order,
+                qty: extraQty,
+                price_unit: this.price_unit,
+                discount: this.discount,
+                customer_note: this.customer_note,
+                note: this.note,
+            });
+            if (this.combo_line_ids?.length) {
+                for (const child of this.combo_line_ids) {
+                    this.models["pos.order.line"].create({
+                        product_id: child.product_id,
+                        order_id: order,
+                        combo_parent_id: newLine,
+                        combo_item_id: child.combo_item_id,
+                        qty: (child.qty / this.qty) * extraQty,
+                        price_unit: child.price_unit,
+                        note: child.note,
+                        customer_note: child.customer_note,
+                    });
+                }
+            }
+            order.selectOrderline(newLine);
+            const pos = order.pos || this.models["pos.order.line"].env?.services?.pos;
+            if (pos?.numberBuffer) {
+                pos.numberBuffer.reset();
+            }
+            return true;
+        }
+
+        return super.setQuantity(quantity, keep_price);
+    },
+    get currentPrepStage() {
+        const stageModels = this._getSortedPrepStages();
         const firstStage = stageModels[0];
         const lastStage = stageModels[stageModels.length - 1];
 
@@ -64,7 +144,9 @@ patch(PosOrderline.prototype, {
             if (childStages.every((s) => s.id === lastStage.id)) {
                 return lastStage;
             }
-            childStages.slice().sort((a, b) => a.sequence - b.sequence);
+            childStages.slice().sort(
+                (a, b) => (a.sequence ?? 0) - (b.sequence ?? 0) || a.id - b.id
+            );
             return childStages[0];
         }
 
@@ -82,11 +164,9 @@ patch(PosOrderline.prototype, {
         }
 
         if (this.isPrepReady) {
-            return (
-                stageModels.find((s) => s.name?.toLowerCase().includes("ready")) ||
-                stageModels[1] ||
-                firstStage
-            );
+            return stageModels.length > 2
+                ? stageModels[stageModels.length - 2]
+                : (stageModels[1] || firstStage);
         }
 
         if (this.isSentToKitchen) {
@@ -110,6 +190,90 @@ patch(PosOrderline.prototype, {
             isReady: this.isPrepReady,
         };
     },
+    get orderLineStyle() {
+        const stage = this.prepStageDisplay;
+        if (!stage) {
+            return "";
+        }
+        return `border-left: 5px solid ${stage.color} !important; background-color: ${stage.color}18;`;
+    },
+    _formatTime(val) {
+        if (!val) {
+            return "";
+        }
+        let dt;
+        if (DateTime.isDateTime(val) || val.isLuxonDateTime || (typeof val === "object" && val.isValid)) {
+            dt = val;
+        } else if (typeof val === "string") {
+            if (val.includes("T") || val.endsWith("Z")) {
+                dt = DateTime.fromISO(val);
+            } else {
+                dt = deserializeDateTime(val);
+            }
+        } else if (val instanceof Date) {
+            dt = DateTime.fromJSDate(val);
+        }
+        if (dt && dt.isValid) {
+            return dt.toLocaleString(DateTime.TIME_WITH_SECONDS);
+        }
+        return "";
+    },
+    get prepStageTimeDisplay() {
+        if (this.combo_line_ids?.length) {
+            const times = this.combo_line_ids.map((c) => c.prepStageTimeDisplay).filter(Boolean);
+            return times[0] || "";
+        }
+        return this._formatTime(
+            this.prep_stage_change_time ||
+            this.prep_sent_time ||
+            this.prep_line_ids?.[0]?.last_stage_change ||
+            this.prep_line_ids?.[0]?.create_date
+        );
+    },
+    get prepSentTimeDisplay() {
+        if (this.combo_line_ids?.length) {
+            const times = this.combo_line_ids.map((c) => c.prepSentTimeDisplay).filter(Boolean);
+            return times[0] || "";
+        }
+        return this._formatTime(this.prep_sent_time || this.prep_line_ids?.[0]?.create_date);
+    },
+    get prepStageChangeTimeDisplay() {
+        if (this.combo_line_ids?.length) {
+            const times = this.combo_line_ids.map((c) => c.prepStageChangeTimeDisplay).filter(Boolean);
+            return times[0] || "";
+        }
+        return this._formatTime(this.prep_stage_change_time || this.prep_line_ids?.[0]?.last_stage_change);
+    },
+    get cashierName() {
+        if (this.combo_parent_id) {
+            return this.combo_parent_id.cashierName;
+        }
+        const order = this.order_id;
+        const pos = order?.pos || this.models?.["pos.order.line"]?.env?.services?.pos;
+        return (
+            order?.cashier_name ||
+            order?.employee_id?.name ||
+            order?.user_id?.name ||
+            order?.getCashierName?.() ||
+            pos?.accessRight?.loggedCashier?.name ||
+            pos?.user?.name ||
+            ""
+        );
+    },
+    get prepStageTooltip() {
+        const stage = this.prepStageDisplay;
+        if (!stage) {
+            return "";
+        }
+        const parts = [stage.name];
+        if (this.prepStageTimeDisplay) {
+            parts.push(this.prepStageTimeDisplay);
+        }
+        if (this.cashierName) {
+            parts.push(this.cashierName);
+        }
+        return parts.join(" • ");
+    },
     _getContrastColor(hexColor) {
         if (!hexColor || !hexColor.startsWith("#") || hexColor.length < 7) {
             return "#ffffff";
@@ -127,19 +291,15 @@ patch(PosOrderline.prototype, {
         }
 
         const nextState = !this.isPrepServed;
+        const now = serializeDateTime(DateTime.now());
         this.manual_served = nextState;
         this.prep_status = nextState ? "served" : false;
-
-        let stageModels = this.models?.["pos.prep.stage"]
-            ? [...this.models["pos.prep.stage"].getAll()].sort((a, b) => a.sequence - b.sequence)
-            : [];
-        if (!stageModels.length) {
-            stageModels = [
-                { id: 1, name: "To cook", color: "#C8C9CB", sequence: 0 },
-                { id: 2, name: "Ready", color: "#60A8FF", sequence: 1 },
-                { id: 3, name: "Completed", color: "#59C629", sequence: 2 },
-            ];
+        this.prep_stage_change_time = nextState ? now : false;
+        if (!this.prep_sent_time) {
+            this.prep_sent_time = now;
         }
+
+        const stageModels = this._getSortedPrepStages();
         const lastStage = stageModels[stageModels.length - 1];
         this.prep_stage_id = nextState && lastStage ? lastStage.id : false;
 
@@ -150,6 +310,10 @@ patch(PosOrderline.prototype, {
                     child.manual_served = nextState;
                     child.prep_status = nextState ? "served" : false;
                     child.prep_stage_id = nextState && lastStage ? lastStage.id : false;
+                    child.prep_stage_change_time = nextState ? now : false;
+                    if (!child.prep_sent_time) {
+                        child.prep_sent_time = now;
+                    }
                 }
             }
         }
@@ -165,6 +329,7 @@ patch(PosOrderline.prototype, {
                     ? "ready"
                     : false;
             parent.prep_stage_id = allChildrenServed && lastStage ? lastStage.id : false;
+            parent.prep_stage_change_time = now;
         }
 
         if (this.order_id) {

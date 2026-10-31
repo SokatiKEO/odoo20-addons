@@ -1,5 +1,8 @@
 import { PosStore } from "@point_of_sale/app/services/pos_store";
 import { patch } from "@web/core/utils/patch";
+import { serializeDateTime } from "@web/core/l10n/dates";
+
+const { DateTime } = luxon;
 
 patch(PosStore.prototype, {
     async setup() {
@@ -40,12 +43,30 @@ patch(PosStore.prototype, {
                 if (stage_id) {
                     line.prep_stage_id = stage_id;
                 }
+                if (update.stage_change_time) {
+                    line.prep_stage_change_time = update.stage_change_time;
+                }
+                if (update.sent_time && !line.prep_sent_time) {
+                    line.prep_sent_time = update.sent_time;
+                }
                 if (line.combo_parent_id) {
                     this._updateComboParentPrepStatus(line.combo_parent_id);
                 }
             }
         }
         this.prepStageVersion++;
+    },
+    async sendOrderInPreparation(order, opts = {}) {
+        const now = serializeDateTime(DateTime.now());
+        if (order?.lines) {
+            for (const line of order.lines) {
+                if (line.isSentToKitchen && !line.prep_sent_time) {
+                    line.prep_sent_time = now;
+                    line.prep_stage_change_time = now;
+                }
+            }
+        }
+        return await super.sendOrderInPreparation(...arguments);
     },
     _updateComboParentPrepStatus(parentLine) {
         if (!parentLine || !parentLine.combo_line_ids?.length) {
@@ -56,10 +77,12 @@ patch(PosStore.prototype, {
             parentLine.prep_status = "served";
             const lastChild = parentLine.combo_line_ids[0];
             parentLine.prep_stage_id = lastChild?.prep_stage_id || parentLine.prep_stage_id;
+            parentLine.prep_stage_change_time = lastChild?.prep_stage_change_time || parentLine.prep_stage_change_time;
         } else if (childStatuses.some((s) => s === "ready")) {
             parentLine.prep_status = "ready";
             const readyChild = parentLine.combo_line_ids.find((c) => c.prep_status === "ready");
             parentLine.prep_stage_id = readyChild?.prep_stage_id || parentLine.prep_stage_id;
+            parentLine.prep_stage_change_time = readyChild?.prep_stage_change_time || parentLine.prep_stage_change_time;
         } else {
             parentLine.prep_status = false;
         }
