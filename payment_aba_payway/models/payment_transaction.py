@@ -49,17 +49,16 @@ class PaymentTransaction(models.Model):
 
         return super()._compute_reference(provider_code, prefix=prefix, separator=separator, **kwargs)
 
-    def _get_specific_processing_values(self, processing_values):
+    def _get_specific_rendering_values(self, processing_values):
         """Override of payment to return ABA Payway specific rendering values.
 
         Note: self.ensure_one() from `_get_processing_values`
 
-        :param dict processing_values: The generic processing values of the transaction
-        :return: The dict of provider-specific processing values
+        :param dict processing_values: The generic processing values of the transaction.
+        :return: The dict of provider-specific rendering values.
         :rtype: dict
         """
-
-        res = super()._get_specific_processing_values(processing_values)
+        res = super()._get_specific_rendering_values(processing_values)
         if self.provider_code != 'aba_payway':
             return res
 
@@ -71,14 +70,16 @@ class PaymentTransaction(models.Model):
             if self.partner_name 
             else (None, None)
         )
-        payment_option = const.PAYMENT_METHODS_MAPPING[self.payment_method_id.code]
+        payment_option = const.PAYMENT_METHODS_MAPPING.get(
+            self.payment_method_id.code, 'cards'
+        )
 
         # The amount is explicitly converted to a string to prevent a hash mismatch.
         # This avoids issues where JavaScript drops trailing zeros from numbers (e.g., 23.0 becomes 23),
         rounded_amount = str(
             float_round(
                 processing_values.get('amount'),
-                const.CURRENCY_DECIMALS.get(self.currency_id.name),
+                const.CURRENCY_DECIMALS.get(self.currency_id.name, 2),
                 rounding_method='DOWN',
             )
         )
@@ -94,11 +95,11 @@ class PaymentTransaction(models.Model):
             const.WEB_HOOK_PATH['webhook'],
         )
 
-        rendering_values = {
-            'form_url': api_url + '/api/payment-gateway/v1/payments/purchase',
-            'tran_id': self.reference,
+        url_params = {
             'req_time': req_time,
-            'lifetime': 3,
+            'merchant_id': merchant_id,
+            'tran_id': self.reference,
+            'amount': rounded_amount,
             'firstname': partner_first_name and partner_first_name[:20] or '',
             'lastname': partner_last_name and partner_last_name[:20] or '',
             'email': (
@@ -109,24 +110,22 @@ class PaymentTransaction(models.Model):
             'phone': self.partner_phone and self.partner_phone[:20] or '',
             'type': 'pre-auth' if self.provider_id.capture_manually else 'purchase',
             'payment_option': payment_option,
-            'amount': rounded_amount,
-            'payment_gate': 0,
-            'merchant_id': merchant_id,
-            'currency': self.currency_id.name,
-            'skip_success_page': 1,
             'return_url': webhook_url,
             'continue_success_url': urljoin(base_odoo_url, '/payment/status'),
+            'currency': self.currency_id.name,
+            'lifetime': 3,
+            'skip_success_page': 1,
+            'payment_gate': '0',
         }
 
-        rendering_values.update(
-            {
-                'hash': self.provider_id._payway_calculate_payment_secure_hash(
-                    api_key, rendering_values, const.PURCHASE_PAYMENT_SECURE_HASH_KEYS
-                )
-            }
+        url_params['hash'] = self.provider_id._payway_calculate_payment_secure_hash(
+            api_key, url_params, const.PURCHASE_PAYMENT_SECURE_HASH_KEYS
         )
 
-        return rendering_values
+        return {
+            'api_url': urljoin(api_url, '/api/payment-gateway/v1/payments/purchase'),
+            'url_params': url_params,
+        }
     
     def _send_refund_request(self, amount_to_refund=None):
         """ Override of payment to send a refund request to Stripe.

@@ -114,6 +114,13 @@ class PaymentProvider(models.Model):
             'support_manual_capture': 'partial',
         })
 
+    def _get_redirect_form_view(self, is_validation=False):
+        """Override of `payment` to return the redirect form template for ABA PayWay."""
+        self.ensure_one()
+        if self.code == 'aba_payway':
+            return self.redirect_form_view_id or self.env.ref('payment.generic_redirect_form')
+        return super()._get_redirect_form_view(is_validation=is_validation)
+
     @api.constrains(
         'payway_environment', 'production_payway_merchant_id', 'production_payway_key', 'production_rsa_public_key',
         'sandbox_payway_merchant_id', 'sandbox_payway_key', 'sandbox_rsa_public_key'

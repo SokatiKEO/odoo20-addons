@@ -21,11 +21,6 @@
 
         'wizards/payment_capture_wizard_views.xml',
     ],
-    'assets': {
-        'web.assets_frontend': [
-            'payment_aba_payway/static/src/**/*',
-        ],
-    },
     'post_init_hook': 'post_init_hook',
     'uninstall_hook': 'uninstall_hook',
     'license': 'LGPL-3',
