@@ -224,6 +224,7 @@ class PaymentTransaction(models.Model):
         if self.provider_code != 'aba_payway':
             return super()._apply_updates(payment_data)
 
+        self = self.with_context(payment_safe_write=True)
         tran_id = payment_data.get('tran_id') or self.reference
         is_from_webhook = self.env.context.get('payway_from_webhook', False)
         upstream_payment_status = payment_data.get('payment_status', '').upper()
@@ -288,6 +289,16 @@ class PaymentTransaction(models.Model):
                 "Received unknown payment status: %(status)s", status=payment_status
             ))
 
+    def _extract_amount_data(self, payment_data):
+        """Override of `payment` to skip generic amount validation for ABA PayWay.
+
+        Amount and currency validation is already verified via `_payway_validate_transaction_detail`
+        using the transaction detail queried directly from PayWay API.
+        """
+        if self.provider_code != 'aba_payway':
+            return super()._extract_amount_data(payment_data)
+        return None
+
     # === Custom validation methods ===
     def _payway_validate_transaction_detail(self, payway_transaction_detail, payment_status):
         """Validate PayWay amount/currency against the Odoo transaction.
@@ -313,17 +324,23 @@ class PaymentTransaction(models.Model):
                 actual=payway_currency or 'N/A',
             )
 
-        expected_precision = const.CURRENCY_DECIMALS.get(payway_currency)
+        expected_precision = const.CURRENCY_DECIMALS.get(payway_currency, self.currency_id.decimal_places)
         expected_amount = float_round(
             self.amount,
             precision_digits=expected_precision,
             rounding_method='DOWN',
         )
 
-        payway_amount = float(detail_data.get('original_amount'))
-        if payway_amount is None:
+        raw_payway_amount = detail_data.get('original_amount')
+        if raw_payway_amount is None:
             return False, _(
-                "Payment validation failed: gateway amount is missing or invalid."
+                "Payment validation failed: gateway amount is missing."
+            )
+        try:
+            payway_amount = float(raw_payway_amount)
+        except (ValueError, TypeError):
+            return False, _(
+                "Payment validation failed: gateway amount is invalid."
             )
 
         amount_matches = (
