@@ -4,22 +4,42 @@ import { patch } from "@web/core/utils/patch";
 patch(SelfOrder.prototype, {
     async setup() {
         await super.setup(...arguments);
-        this.data.connectWebSocket("POS_PREP_STAGE_UPDATE", (payload) => {
-            const updates = payload?.updates || [];
-            for (const upd of updates) {
-                if (upd.line_uuid) {
-                    const line = this.models["pos.order.line"]?.getBy?.("uuid", upd.line_uuid);
+        if (this.data) {
+            this.data.connectWebSocket("POS_PREP_STAGE_UPDATE", (payload) => {
+                const updates = payload?.updates || (Array.isArray(payload) ? payload : [payload]);
+                for (const upd of updates) {
+                    let line = null;
+                    if (upd.line_uuid) {
+                        line =
+                            this.models["pos.order.line"]?.getBy?.("uuid", upd.line_uuid) ||
+                            this.models["pos.order.line"]?.getAll?.()?.find?.((l) => l.uuid === upd.line_uuid);
+                    }
+                    if (!line && upd.line_id) {
+                        line =
+                            this.models["pos.order.line"]?.get?.(upd.line_id) ||
+                            this.models["pos.order.line"]?.getAll?.()?.find?.((l) => l.id === upd.line_id);
+                    }
                     if (line) {
                         line.prep_status = upd.status;
-                        line.prep_stage_name = upd.stage_name;
-                        line.prep_stage_color = upd.stage_color;
-                        line.prep_stage_change_time = upd.stage_change_time;
-                        line.prep_sent_time = upd.sent_time;
+                        if (upd.stage_id) {
+                            line.prep_stage_id = upd.stage_id;
+                        }
+                        if (upd.stage_name) {
+                            line.prep_stage_name = upd.stage_name;
+                        }
+                        if (upd.stage_color) {
+                            line.prep_stage_color = upd.stage_color;
+                        }
+                        if (upd.stage_change_time) {
+                            line.prep_stage_change_time = upd.stage_change_time;
+                        }
+                        if (upd.sent_time && !line.prep_sent_time) {
+                            line.prep_sent_time = upd.sent_time;
+                        }
                     }
                 }
-            }
-            this.getUserDataFromServer();
-        });
+                this.getUserDataFromServer();
+            });
+        }
     },
 });
-

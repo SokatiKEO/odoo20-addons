@@ -177,6 +177,20 @@ patch(PosOrderline.prototype, {
             };
         }
 
+        if (this.isPrepReady || this.prep_status === "ready") {
+            const readyStage = stageModels.find((s) => (s.name || "").toLowerCase().includes("ready"));
+            if (readyStage) {
+                return readyStage;
+            }
+            if (stageModels.length > 2) {
+                return stageModels[stageModels.length - 2];
+            }
+            if (stageModels.length > 1) {
+                return stageModels[1];
+            }
+            return firstStage;
+        }
+
         const stageId = typeof this.prep_stage_id === "object" ? this.prep_stage_id?.id : this.prep_stage_id;
         if (stageId) {
             const stage =
@@ -206,20 +220,6 @@ patch(PosOrderline.prototype, {
                 color: this.prep_stage_color || "#C8C9CB",
                 sequence: 0,
             };
-        }
-
-        if (this.isPrepReady) {
-            const readyStage = stageModels.find((s) => (s.name || "").toLowerCase().includes("ready"));
-            if (readyStage) {
-                return readyStage;
-            }
-            if (stageModels.length > 2) {
-                return stageModels[stageModels.length - 2];
-            }
-            if (stageModels.length > 1) {
-                return stageModels[1];
-            }
-            return firstStage;
         }
 
         if (this.isSentToKitchen) {

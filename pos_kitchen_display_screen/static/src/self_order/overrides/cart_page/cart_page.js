@@ -45,6 +45,12 @@ patch(CartPage.prototype, {
         if (!isSent) {
             return "";
         }
+        if (line.manual_served || line.prep_status === "served") {
+            return line.prep_stage_name || _t("Served");
+        }
+        if (line.prep_status === "ready") {
+            return line.prep_stage_name || _t("Ready");
+        }
         if (line.prep_stage_name) {
             return line.prep_stage_name;
         }
@@ -52,6 +58,12 @@ patch(CartPage.prototype, {
     },
 
     getLineStageColor(line) {
+        if (line.manual_served || line.prep_status === "served") {
+            return line.prep_stage_color || "#59C629";
+        }
+        if (line.prep_status === "ready") {
+            return line.prep_stage_color || "#008bf5";
+        }
         if (line.prep_stage_color) {
             return line.prep_stage_color;
         }

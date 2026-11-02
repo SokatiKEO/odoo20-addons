@@ -83,9 +83,7 @@ class PaymentTransaction(models.Model):
             )
         )
 
-        base_odoo_url: str = (
-            self.env['ir.config_parameter'].sudo().get_param('web.base.url')
-        )
+        base_odoo_url = self.get_base_url()
 
         webhook_url = urljoin(
             (
