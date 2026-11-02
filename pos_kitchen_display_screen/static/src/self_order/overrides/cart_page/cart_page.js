@@ -45,17 +45,8 @@ patch(CartPage.prototype, {
         if (!isSent) {
             return "";
         }
-        if (line.prep_status === "ready") {
-            return "Ready";
-        }
-        if (line.prep_status === "served" || line.manual_served) {
-            return "Served";
-        }
         if (line.prep_stage_name) {
             return line.prep_stage_name;
-        }
-        if (isSent && (this.selfOrder.currentOrder?.isSynced || line.id)) {
-            return "To cook";
         }
         return "";
     },
@@ -63,12 +54,6 @@ patch(CartPage.prototype, {
     getLineStageColor(line) {
         if (line.prep_stage_color) {
             return line.prep_stage_color;
-        }
-        if (line.prep_status === "ready") {
-            return "#008bf5";
-        }
-        if (line.prep_status === "served" || line.manual_served) {
-            return "#59C629";
         }
         return "#C8C9CB";
     },

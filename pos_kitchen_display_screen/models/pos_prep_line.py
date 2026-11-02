@@ -12,7 +12,7 @@ class PosPrepLine(models.Model):
         - If no stage_id: not in preparation yet, returns False.
         - Last stage (Completed / Served): always 'served'.
         - Ready stage: 'served' if ticked done (todo=False); 'ready' if waiting for pickup (todo=True).
-        - First stage (To cook): 'ready' if ticked done (todo=False, finished cooking); False if cooking (todo=True).
+        - First stage: 'ready' if ticked done (todo=False, finished cooking); False if cooking (todo=True).
         """
         self.ensure_one()
         if self.cancelled:
@@ -34,30 +34,21 @@ class PosPrepLine(models.Model):
             return False
 
         # Determine stage position dynamically from sequence rather than hardcoded names
-        is_first = self.is_first_stage
-        is_last = self.is_last_stage
+        stages = stage.prep_display_ids.stage_ids.sorted(key=lambda s: (s.sequence, s.id))
+        if not stages:
+            stages = self.env["pos.prep.stage"].search([], order="sequence, id")
 
-        # Fallback if prep_display_ids was not yet computed or linked
-        if not is_first and not is_last:
-            stages = self.stage_id.prep_display_ids.stage_ids.sorted(key=lambda s: (s.sequence, s.id))
-            if not stages:
-                stages = self.env["pos.prep.stage"].search([], order="sequence, id")
-            if stages:
-                is_first = (stage.id == stages[0].id)
-                is_last = (stage.id == stages[-1].id)
+        is_last = (stage.id == stages[-1].id) if stages else self.is_last_stage
 
         # 1. Final stage: always served / completed
         if is_last:
             return "served"
 
-        # 2. Intermediate stages (between first and last): ready for pickup; served if ticked done
-        if not is_first:
-            return "served" if not self.todo else "ready"
-
-        # 3. First stage (cooking/prep): ready if cook ticked completion box (todo=False); cooking otherwise
+        # 2. When the kitchen ticks the item as done (todo=False), it is ready for collection
         if not self.todo:
             return "ready"
 
+        # 3. Intermediate/cooking stages in progress (todo=True): returns False so dynamic stage name/color is used
         return False
 
     def change_prep_line_stage(self, prep_display_id, direction=1):
@@ -70,6 +61,13 @@ class PosPrepLine(models.Model):
         """Override to notify POS cashier terminals when item completion status changes."""
         res = super().change_state_status(todos)
         self._notify_pos_cashier_stage()
+        return res
+
+    def write(self, vals):
+        """Notify POS cashier on any stage or completion state updates."""
+        res = super().write(vals)
+        if "stage_id" in vals or "todo" in vals or "cancelled" in vals:
+            self._notify_pos_cashier_stage()
         return res
 
     def _notify_pos_cashier_stage(self):

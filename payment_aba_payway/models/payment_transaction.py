@@ -3,7 +3,7 @@ import pprint
 from urllib.parse import urljoin
 import logging
 
-from odoo import _, models
+from odoo import _, api, models
 from odoo.addons.payment import utils as payment_utils
 from odoo.tools import float_compare, float_round
 from odoo.exceptions import ValidationError
@@ -22,6 +22,7 @@ class PaymentTransaction(models.Model):
             return _("Your payment is being processed. Please do not refresh or close your browser.")
         return super()._get_status_message(**kwargs)
 
+    @api.model
     def _compute_reference(self, provider_code, prefix=None, separator='-', **kwargs):
         """Override of `payment` to ensure that PayWay requirement for references is satisfied.
 
@@ -29,17 +30,24 @@ class PaymentTransaction(models.Model):
         Make sure that on DB change, the PayWay transaction id will not be duplicate.
         Preserve Odoo original reference in PayWay transaction id for easy reconciliation.
 
+        :param str provider_code: The code of the provider handling the transaction.
+        :param str prefix: The custom prefix used to compute the full reference.
+        :param str separator: The custom separator used to separate the prefix from the suffix.
+        :param dict kwargs: Optional values passed to `_compute_reference_prefix`.
+        :return: The unique reference for the transaction.
+        :rtype: str
         """
-
         if provider_code != 'aba_payway':
-            return super()._compute_reference(provider_code, prefix=prefix, **kwargs)
+            return super()._compute_reference(provider_code, prefix=prefix, separator=separator, **kwargs)
 
         if not prefix:
-            prefix = self.sudo()._compute_reference_prefix(provider_code, separator, **kwargs)
+            prefix = self.sudo()._compute_reference_prefix(separator, **kwargs)
+        if not prefix:
+            prefix = payment_utils.singularize_reference_prefix()
 
         prefix = payway_utils._compute_payway_tran_id(prefix=prefix, separator=separator)
 
-        return super()._compute_reference(provider_code, prefix=prefix, **kwargs)
+        return super()._compute_reference(provider_code, prefix=prefix, separator=separator, **kwargs)
 
     def _get_specific_processing_values(self, processing_values):
         """Override of payment to return ABA Payway specific rendering values.

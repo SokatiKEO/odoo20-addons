@@ -28,12 +28,6 @@ patch(OrdersHistoryPage.prototype, {
         if (order.prep_stage_name) {
             return order.prep_stage_name;
         }
-        if (order.prep_status === "ready") {
-            return "Ready";
-        }
-        if (order.prep_status === "served") {
-            return "Served";
-        }
         return "";
     },
 
@@ -41,25 +35,10 @@ patch(OrdersHistoryPage.prototype, {
         if (order.prep_stage_color) {
             return order.prep_stage_color;
         }
-        if (order.prep_status === "ready") {
-            return "#008bf5";
-        }
-        if (order.prep_status === "served") {
-            return "#59C629";
-        }
         return "#C8C9CB";
     },
 
     getLineStageName(line) {
-        if (!line.prep_stage_name && !line.prep_status && !line.manual_served) {
-            return "";
-        }
-        if (line.prep_status === "ready") {
-            return "Ready";
-        }
-        if (line.prep_status === "served" || line.manual_served) {
-            return "Served";
-        }
         if (line.prep_stage_name) {
             return line.prep_stage_name;
         }
@@ -69,12 +48,6 @@ patch(OrdersHistoryPage.prototype, {
     getLineStageColor(line) {
         if (line.prep_stage_color) {
             return line.prep_stage_color;
-        }
-        if (line.prep_status === "ready") {
-            return "#008bf5";
-        }
-        if (line.prep_status === "served" || line.manual_served) {
-            return "#59C629";
         }
         return "#C8C9CB";
     },

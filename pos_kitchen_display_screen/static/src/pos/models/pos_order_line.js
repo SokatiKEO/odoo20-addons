@@ -42,19 +42,34 @@ patch(PosOrderline.prototype, {
         return this.prep_status === "served";
     },
     _getSortedPrepStages() {
-        let stageModels = this.models?.["pos.prep.stage"]
-            ? [...this.models["pos.prep.stage"].getAll()].sort(
-                (a, b) => (a.sequence ?? 0) - (b.sequence ?? 0) || a.id - b.id
-            )
-            : [];
-        if (!stageModels.length) {
-            stageModels = [
-                { id: 1, name: "To cook", color: "#C8C9CB", sequence: 0 },
-                { id: 2, name: "Ready", color: "#60A8FF", sequence: 1 },
-                { id: 3, name: "Completed", color: "#59C629", sequence: 2 },
-            ];
+        if (this.models?.["pos.prep.stage"]) {
+            const stages = this.models["pos.prep.stage"].getAll();
+            if (stages && stages.length > 0) {
+                return [...stages].sort(
+                    (a, b) => (a.sequence ?? 0) - (b.sequence ?? 0) || a.id - b.id
+                );
+            }
         }
-        return stageModels;
+        if (this.models?.["pos.prep.display"]) {
+            const displays = this.models["pos.prep.display"].getAll();
+            const stages = [];
+            for (const disp of displays) {
+                if (disp.stage_ids?.length) {
+                    for (const s of disp.stage_ids) {
+                        const stageObj = typeof s === "object" ? s : this.models?.["pos.prep.stage"]?.get(s);
+                        if (stageObj && !stages.some((existing) => existing.id === stageObj.id)) {
+                            stages.push(stageObj);
+                        }
+                    }
+                }
+            }
+            if (stages.length > 0) {
+                return stages.sort(
+                    (a, b) => (a.sequence ?? 0) - (b.sequence ?? 0) || a.id - b.id
+                );
+            }
+        }
+        return [];
     },
     get isProgressedPrepStage() {
         if (this.manual_served || this.isPrepServed) {
@@ -90,8 +105,8 @@ patch(PosOrderline.prototype, {
         const quant =
             typeof quantity === "number" ? quantity : parseFloat("" + (quantity ? quantity : 0));
 
-        // When a line is in a progressed preparation stage (e.g. Ready, Served, etc.)
-        // and quantity is increased, split the extra quantity into a new orderline in the initial stage ("To cook")
+        // When a line is in a progressed preparation stage and quantity is increased,
+        // split the extra quantity into a new orderline in the initial stage
         if (quant > this.qty && this.isProgressedPrepStage && this.order_id) {
             const extraQty = quant - this.qty;
             const order = this.order_id;
@@ -130,8 +145,8 @@ patch(PosOrderline.prototype, {
     },
     get currentPrepStage() {
         const stageModels = this._getSortedPrepStages();
-        const firstStage = stageModels[0];
-        const lastStage = stageModels[stageModels.length - 1];
+        const firstStage = stageModels[0] || null;
+        const lastStage = stageModels.length ? stageModels[stageModels.length - 1] : null;
 
         // For combo parent lines, aggregate from child lines
         if (this.combo_line_ids?.length) {
@@ -141,7 +156,7 @@ patch(PosOrderline.prototype, {
             if (!childStages.length) {
                 return null;
             }
-            if (childStages.every((s) => s.id === lastStage.id)) {
+            if (lastStage && childStages.every((s) => s.id === lastStage.id)) {
                 return lastStage;
             }
             childStages.slice().sort(
@@ -151,22 +166,60 @@ patch(PosOrderline.prototype, {
         }
 
         if (this.manual_served || this.prep_status === "served") {
-            return lastStage;
+            if (lastStage) {
+                return lastStage;
+            }
+            return {
+                id: null,
+                name: this.prep_stage_name || "",
+                color: this.prep_stage_color || "#59C629",
+                sequence: 9999,
+            };
         }
 
-        if (this.prep_stage_id) {
+        const stageId = typeof this.prep_stage_id === "object" ? this.prep_stage_id?.id : this.prep_stage_id;
+        if (stageId) {
             const stage =
-                this.models?.["pos.prep.stage"]?.get(this.prep_stage_id) ||
-                stageModels.find((s) => s.id === this.prep_stage_id);
+                this.models?.["pos.prep.stage"]?.get?.(stageId) ||
+                stageModels.find((s) => s.id === stageId);
             if (stage) {
                 return stage;
             }
+            if (this.prep_stage_name) {
+                return {
+                    id: stageId,
+                    name: this.prep_stage_name,
+                    color: this.prep_stage_color || "#C8C9CB",
+                    sequence: 0,
+                };
+            }
+        }
+
+        if (this.prep_stage_name) {
+            const stageByName = stageModels.find((s) => s.name === this.prep_stage_name);
+            if (stageByName) {
+                return stageByName;
+            }
+            return {
+                id: stageId || null,
+                name: this.prep_stage_name,
+                color: this.prep_stage_color || "#C8C9CB",
+                sequence: 0,
+            };
         }
 
         if (this.isPrepReady) {
-            return stageModels.length > 2
-                ? stageModels[stageModels.length - 2]
-                : (stageModels[1] || firstStage);
+            const readyStage = stageModels.find((s) => (s.name || "").toLowerCase().includes("ready"));
+            if (readyStage) {
+                return readyStage;
+            }
+            if (stageModels.length > 2) {
+                return stageModels[stageModels.length - 2];
+            }
+            if (stageModels.length > 1) {
+                return stageModels[1];
+            }
+            return firstStage;
         }
 
         if (this.isSentToKitchen) {
@@ -285,23 +338,24 @@ patch(PosOrderline.prototype, {
         return brightness > 155 ? "#1a1a1a" : "#ffffff";
     },
     toggleServed() {
-        // Disallow cashier from toggling serve / un-serve on items sent to the kitchen
         if (this.isSentToKitchen) {
             return;
         }
 
         const nextState = !this.isPrepServed;
         const now = serializeDateTime(DateTime.now());
+        const stageModels = this._getSortedPrepStages();
+        const lastStage = stageModels.length ? stageModels[stageModels.length - 1] : null;
+
         this.manual_served = nextState;
         this.prep_status = nextState ? "served" : false;
         this.prep_stage_change_time = nextState ? now : false;
         if (!this.prep_sent_time) {
             this.prep_sent_time = now;
         }
-
-        const stageModels = this._getSortedPrepStages();
-        const lastStage = stageModels[stageModels.length - 1];
         this.prep_stage_id = nextState && lastStage ? lastStage.id : false;
+        this.prep_stage_name = nextState && lastStage ? lastStage.name : false;
+        this.prep_stage_color = nextState && lastStage ? lastStage.color : false;
 
         // If this is a combo parent line, toggle any non-kitchen combo children
         if (this.combo_line_ids?.length) {
@@ -310,6 +364,8 @@ patch(PosOrderline.prototype, {
                     child.manual_served = nextState;
                     child.prep_status = nextState ? "served" : false;
                     child.prep_stage_id = nextState && lastStage ? lastStage.id : false;
+                    child.prep_stage_name = nextState && lastStage ? lastStage.name : false;
+                    child.prep_stage_color = nextState && lastStage ? lastStage.color : false;
                     child.prep_stage_change_time = nextState ? now : false;
                     if (!child.prep_sent_time) {
                         child.prep_sent_time = now;
@@ -329,6 +385,8 @@ patch(PosOrderline.prototype, {
                     ? "ready"
                     : false;
             parent.prep_stage_id = allChildrenServed && lastStage ? lastStage.id : false;
+            parent.prep_stage_name = allChildrenServed && lastStage ? lastStage.name : false;
+            parent.prep_stage_color = allChildrenServed && lastStage ? lastStage.color : false;
             parent.prep_stage_change_time = now;
         }
 

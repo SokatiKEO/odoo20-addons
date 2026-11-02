@@ -47,10 +47,14 @@ class PosOrder(models.Model):
         "lines.prep_stage_change_time",
     )
     def _compute_prep_order_status(self):
-        """Compute the overall preparation status, stage name, color, and timestamps for the order."""
-        last_stage = self.env["pos.prep.stage"].search([], order="sequence desc, id desc", limit=1)
-        first_stage = self.env["pos.prep.stage"].search([], order="sequence, id", limit=1)
+        """Compute the overall preparation status, stage name, color, and timestamps dynamically from KDS stages."""
         for order in self:
+            stages = order.config_id._get_kds_prep_stages() if order.config_id else False
+            if not stages:
+                stages = self.env["pos.prep.stage"].search([], order="sequence, id")
+            first_stage = stages[0] if stages else False
+            last_stage = stages[-1] if stages else False
+
             prep_lines = order.lines.filtered(
                 lambda l: l.prep_stage_name or l.prep_status or l.manual_served or l.prep_line_ids
             )
@@ -70,23 +74,30 @@ class PosOrder(models.Model):
             statuses = [l.prep_status for l in prep_lines]
             if statuses and all(s == "served" for s in statuses):
                 order.prep_status = "served"
-                order.prep_stage_name = last_stage.name if last_stage else "Served"
+                order.prep_stage_name = last_stage.name if last_stage else ""
                 order.prep_stage_color = last_stage.color if last_stage else "#59C629"
             elif any(s == "ready" for s in statuses):
                 order.prep_status = "ready"
                 ready_line = prep_lines.filtered(lambda l: l.prep_status == "ready")
                 stage = ready_line[0].prep_stage_id if ready_line and ready_line[0].prep_stage_id else False
-                order.prep_stage_name = stage.name if stage else "Ready"
-                order.prep_stage_color = (stage.color if stage else False) or "#008bf5"
+                if stage:
+                    order.prep_stage_name = stage.name
+                    order.prep_stage_color = stage.color or "#008bf5"
+                else:
+                    ready_stage = stages.filtered(lambda s: "ready" in s.name.lower()) if stages else False
+                    if not ready_stage and len(stages) > 2:
+                        ready_stage = stages[-2]
+                    order.prep_stage_name = ready_stage.name if ready_stage else "Ready"
+                    order.prep_stage_color = (ready_stage.color if ready_stage else False) or "#008bf5"
             else:
                 order.prep_status = "preparing"
-                stages = [l.prep_stage_id for l in prep_lines if l.prep_stage_id]
-                if stages:
-                    stages_sorted = sorted(stages, key=lambda s: (s.sequence, s.id))
+                stages_in_lines = [l.prep_stage_id for l in prep_lines if l.prep_stage_id]
+                if stages_in_lines:
+                    stages_sorted = sorted(stages_in_lines, key=lambda s: (s.sequence, s.id))
                     order.prep_stage_name = stages_sorted[0].name
                     order.prep_stage_color = stages_sorted[0].color or "#C8C9CB"
                 else:
-                    order.prep_stage_name = first_stage.name if first_stage else "To cook"
+                    order.prep_stage_name = first_stage.name if first_stage else ""
                     order.prep_stage_color = first_stage.color if first_stage else "#C8C9CB"
 
     @api.depends("user_id")
@@ -129,9 +140,9 @@ class PosOrder(models.Model):
 
     @api.model
     def _load_pos_preparation_data_fields(self):
-        """Include ``table_name`` and ``cashier_name`` in the preparation display fields.
+        """Include table_name and cashier_name in the preparation display fields.
 
-        :return: List of ``pos.order`` field names to load in preparation display.
+        :return: List of pos.order field names to load in preparation display.
         :rtype: list[str]
         """
         fields = super()._load_pos_preparation_data_fields()
@@ -157,4 +168,3 @@ class PosOrder(models.Model):
             if field not in fields:
                 fields.append(field)
         return fields
-

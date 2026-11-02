@@ -84,17 +84,23 @@ class PosOrderLine(models.Model):
 
     @api.depends("prep_line_ids.stage_id", "prep_line_ids.cancelled", "manual_served", "combo_line_ids.prep_stage_id")
     def _compute_prep_stage_id(self):
-        last_stage = self.env["pos.prep.stage"].search([], order="sequence desc, id desc", limit=1)
+        """Compute the preparation stage dynamically from linked prep lines or display stages."""
         for line in self:
+            stages = line.order_id.config_id._get_kds_prep_stages() if line.order_id and line.order_id.config_id else False
+            if not stages:
+                stages = self.env["pos.prep.stage"].search([], order="sequence, id")
+            last_stage = stages[-1] if stages else False
+
             if line.manual_served:
                 line.prep_stage_id = last_stage
                 continue
+
             if line.combo_line_ids:
-                stages = [c.prep_stage_id for c in line.combo_line_ids if c.prep_stage_id]
-                if stages and all(s == last_stage for s in stages):
+                c_stages = [c.prep_stage_id for c in line.combo_line_ids if c.prep_stage_id]
+                if c_stages and last_stage and all(s == last_stage for s in c_stages):
                     line.prep_stage_id = last_stage
-                elif stages:
-                    stages_sorted = sorted(stages, key=lambda s: s.sequence)
+                elif c_stages:
+                    stages_sorted = sorted(c_stages, key=lambda s: (s.sequence, s.id))
                     line.prep_stage_id = stages_sorted[0]
                 else:
                     line.prep_stage_id = False
@@ -116,12 +122,10 @@ class PosOrderLine(models.Model):
             - False: if lines are still in progress / cooking or unserved.
         """
         for line in self:
-            # If manually marked served by cashier
             if line.manual_served:
                 line.prep_status = "served"
                 continue
 
-            # If this is a combo parent line with combo child order lines
             if line.combo_line_ids:
                 child_statuses = [child.prep_status for child in line.combo_line_ids]
                 if child_statuses and all(s == "served" for s in child_statuses):
@@ -137,7 +141,6 @@ class PosOrderLine(models.Model):
                 line.prep_status = False
                 continue
 
-            # Exclude combo lines with no stage
             valid_prep_lines = active_prep_lines.filtered(lambda pl: pl.stage_id or pl.combo_line_ids)
             if not valid_prep_lines:
                 line.prep_status = False
@@ -159,21 +162,30 @@ class PosOrderLine(models.Model):
         "combo_line_ids.prep_stage_color",
     )
     def _compute_prep_stage_display(self):
-        """Compute localized stage name and hex color code for UI display."""
-        last_stage = self.env["pos.prep.stage"].search([], order="sequence desc, id desc", limit=1)
-        first_stage = self.env["pos.prep.stage"].search([], order="sequence, id", limit=1)
+        """Compute localized stage name and hex color code dynamically from Kitchen Display stages."""
         for line in self:
+            stages = line.order_id.config_id._get_kds_prep_stages() if line.order_id and line.order_id.config_id else False
+            if not stages:
+                stages = self.env["pos.prep.stage"].search([], order="sequence, id")
+            first_stage = stages[0] if stages else False
+            last_stage = stages[-1] if stages else False
+
             if line.manual_served or line.prep_status == "served":
-                line.prep_stage_name = last_stage.name if last_stage else "Served"
+                line.prep_stage_name = last_stage.name if last_stage else ""
                 line.prep_stage_color = last_stage.color if last_stage else "#59C629"
-            elif line.prep_status == "ready":
-                line.prep_stage_name = line.prep_stage_id.name if line.prep_stage_id else "Ready"
-                line.prep_stage_color = (line.prep_stage_id.color if line.prep_stage_id else False) or "#008bf5"
             elif line.prep_stage_id:
                 line.prep_stage_name = line.prep_stage_id.name
                 line.prep_stage_color = line.prep_stage_id.color or "#C8C9CB"
+            elif line.prep_status == "ready":
+                ready_stage = stages.filtered(lambda s: "ready" in s.name.lower()) if stages else False
+                if not ready_stage and len(stages) > 2:
+                    ready_stage = stages[-2]
+                elif not ready_stage and len(stages) > 1:
+                    ready_stage = stages[1]
+                line.prep_stage_name = ready_stage.name if ready_stage else "Ready"
+                line.prep_stage_color = (ready_stage.color if ready_stage else False) or "#008bf5"
             elif line.prep_line_ids:
-                line.prep_stage_name = first_stage.name if first_stage else "To cook"
+                line.prep_stage_name = first_stage.name if first_stage else ""
                 line.prep_stage_color = first_stage.color if first_stage else "#C8C9CB"
             else:
                 line.prep_stage_name = False
@@ -190,7 +202,7 @@ class PosOrderLine(models.Model):
 
     @api.model
     def _load_pos_data_fields(self, config):
-        """Include prep_status, prep_stage_id, and manual_served in the initial data loaded by POS sessions."""
+        """Include preparation fields in the initial data loaded by POS sessions."""
         fields = super()._load_pos_data_fields(config)
         extra = (
             "prep_status",
@@ -208,7 +220,7 @@ class PosOrderLine(models.Model):
 
     @api.model
     def _load_pos_self_data_fields(self, config):
-        """Include preparation status, stage name, color, and timestamps in self-order lines."""
+        """Include preparation fields in self-order lines."""
         fields = super()._load_pos_self_data_fields(config)
         extra = [
             "prep_status",

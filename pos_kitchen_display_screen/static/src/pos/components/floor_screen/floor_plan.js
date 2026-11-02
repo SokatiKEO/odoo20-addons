@@ -18,17 +18,15 @@ patch(FloorPlan.prototype, {
             return [];
         }
 
-        // Get dynamic preparation stages sorted by sequence with safe fallback
+        // Get dynamic preparation stages sorted by sequence
         let stageModels = this.pos?.models?.["pos.prep.stage"]
-            ? [...this.pos.models["pos.prep.stage"].getAll()].sort((a, b) => a.sequence - b.sequence)
+            ? [...this.pos.models["pos.prep.stage"].getAll()].sort(
+                (a, b) => (a.sequence ?? 0) - (b.sequence ?? 0) || a.id - b.id
+            )
             : [];
 
         if (!stageModels.length) {
-            stageModels = [
-                { id: 1, name: "To cook", color: "#C8C9CB", sequence: 0 },
-                { id: 2, name: "Ready", color: "#60A8FF", sequence: 1 },
-                { id: 3, name: "Completed", color: "#59C629", sequence: 2 },
-            ];
+            return [];
         }
 
         const firstStage = stageModels[0];
@@ -52,15 +50,16 @@ patch(FloorPlan.prototype, {
 
                 if (stage && countsByStageId[stage.id] !== undefined) {
                     countsByStageId[stage.id] += qty;
-                } else if (line.isPrepServed) {
+                } else if (line.isPrepServed && lastStage) {
                     countsByStageId[lastStage.id] += qty;
                 } else if (line.isPrepReady) {
                     const readyStage =
-                    stageModels.length > 2
-                        ? stageModels[stageModels.length - 2]
-                        : (stageModels[1] || firstStage);
-                    countsByStageId[readyStage.id] += qty;
-                } else if (line.isSentToKitchen) {
+                        stageModels.find((s) => (s.name || "").toLowerCase().includes("ready")) ||
+                        (stageModels.length > 2 ? stageModels[stageModels.length - 2] : (stageModels[1] || firstStage));
+                    if (readyStage && countsByStageId[readyStage.id] !== undefined) {
+                        countsByStageId[readyStage.id] += qty;
+                    }
+                } else if (line.isSentToKitchen && firstStage) {
                     countsByStageId[firstStage.id] += qty;
                 }
             }
@@ -72,7 +71,7 @@ patch(FloorPlan.prototype, {
             .map((stage) => {
                 const color = stage.color || "#60A8FF";
                 const isReady =
-                stage.id !== firstStage.id && stage.id !== lastStage.id;
+                    stage.id !== firstStage.id && stage.id !== lastStage.id;
                 return {
                     id: stage.id,
                     name: stage.name,
