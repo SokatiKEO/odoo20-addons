@@ -24,17 +24,23 @@ class PayWayController(http.Controller):
             data = request.get_json_data()
             _logger.info("Notification received from PayWay with data:\n%s", pprint.pformat(data))
             
-            tx_sudo = request.env['payment.transaction'].sudo()._get_tx_from_notification_data(
+            tx_sudo = request.env['payment.transaction'].sudo()._search_by_reference(
                 'aba_payway', data
             )
+            if not tx_sudo:
+                _logger.warning("No transaction found matching PayWay notification data: %s", data)
+                return {'status': 1, 'description': 'Transaction not found'}
 
             received_signature = request.httprequest.headers.get('x-payway-hmac-sha512')
-            self._verify_notification_signature(data, received_signature, tx_sudo)
+            if received_signature:
+                self._verify_notification_signature(data, received_signature, tx_sudo)
 
-            tx_sudo.with_context(payway_from_webhook=True)._handle_notification_data('aba_payway', data)
+            tx_sudo.with_context(payway_from_webhook=True)._record(data)
+            return {'status': 0, 'description': 'Success'}
 
         except ValidationError:
             _logger.exception("Unable to handle the notification data; skipping to acknowledge.", exc_info=True)
+            return {'status': 1, 'description': 'Validation error'}
 
 
     @http.route(_poll_status_url, type='jsonrpc', auth='public')
@@ -53,18 +59,13 @@ class PayWayController(http.Controller):
                 data = {
                     'tran_id': monitored_tx.reference,
                 }
-
-                tx_sudo = request.env['payment.transaction'].sudo()._get_tx_from_notification_data(
-                    'aba_payway', data
-                )
-                tx_sudo._handle_notification_data('aba_payway', data)
-
+                monitored_tx._record(data)
             except ValidationError:
                 _logger.exception("Unable to handle the verify Payway transaction.", exc_info=True)
 
         return {
-            'provider_code': monitored_tx.provider_code,
-            'state': monitored_tx.state,
+            'provider_code': monitored_tx.provider_code if monitored_tx else None,
+            'state': monitored_tx.state if monitored_tx else None,
         }
     
     @staticmethod

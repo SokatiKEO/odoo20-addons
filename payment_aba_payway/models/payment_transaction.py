@@ -127,195 +127,115 @@ class PaymentTransaction(models.Model):
             'url_params': url_params,
         }
     
-    def _send_refund_request(self, amount_to_refund=None):
-        """ Override of payment to send a refund request to Stripe.
-
-        Note: self.ensure_one()
-
-        :param float amount_to_refund: The amount to refund.
-        :return: The refund transaction created to process the refund request.
-        :rtype: recordset of `payment.transaction`
-        """
-        refund_tx = super()._send_refund_request(amount_to_refund=amount_to_refund)
+    def _send_refund_request(self):
+        """Override of `payment` to send a refund request to PayWay."""
         if self.provider_code != 'aba_payway':
-            return refund_tx
-        
-        _, merchant_id, _, public_key_pem = self.provider_id._payway_get_api_cred()
+            return super()._send_refund_request()
 
+        _, merchant_id, _, public_key_pem = self.provider_id._payway_get_api_cred()
         payload_merchant_auth = {
             "mc_id": merchant_id,
-            "tran_id": self.provider_reference,
-            "refund_amount": -refund_tx.amount,
+            "tran_id": self.source_transaction_id.provider_reference or self.source_transaction_id.reference,
+            "refund_amount": -self.amount,
         }
         merchant_auth = self.provider_id._payway_calculate_merchant_auth(public_key_pem, payload_merchant_auth)
 
         data: dict = self.provider_id._payway_api_refund_transaction(merchant_auth)
         _logger.info(
-            "Payway refund request response for transaction with reference %s; payway_reference %s:\n%s",
-            self.reference, self.provider_reference, pprint.pformat(data)
+            "Payway refund request response for transaction with reference %s:\n%s",
+            self.reference, pprint.pformat(data)
         )
 
-        # Prepare data for _process_notification_data to handle
         data.update({
-            'tran_id': self.provider_reference,
+            'tran_id': self.reference,
+            'payment_status': const.STATUS_MAPPING['REFUNDED'],
         })
+        self._record(data)
 
-        refund_tx._handle_notification_data('aba_payway', data)
-
-        return refund_tx
-
-    def _send_capture_request(self, amount_to_capture=None):
-        """ Override of `payment` to send a capture re_send_capture_requestquest to Adyen. """
-        capture_child_tx = super()._send_capture_request(amount_to_capture=amount_to_capture)
+    def _send_capture_request(self):
+        """Override of `payment` to send a capture request to PayWay."""
         if self.provider_code != 'aba_payway':
-            return capture_child_tx 
+            return super()._send_capture_request()
 
-        _, merchant_id, _, public_key_pem = self.provider_id._payway_get_api_cred()        
+        _, merchant_id, _, public_key_pem = self.provider_id._payway_get_api_cred()
         payload_merchant_auth = {
             "mc_id": merchant_id,
-            "tran_id": self.provider_reference,
-            "complete_amount": amount_to_capture or self.amount,
+            "tran_id": self.source_transaction_id.provider_reference or self.source_transaction_id.reference,
+            "complete_amount": self.amount,
         }
         merchant_auth = self.provider_id._payway_calculate_merchant_auth(public_key_pem, payload_merchant_auth)
-        
+
         data: dict = self.provider_id._payway_api_capture_transaction(merchant_auth)
         _logger.info(
-            "Payway capture request response for transaction with reference %s; payway_reference %s:\n%s",
-            self.reference, self.provider_reference, pprint.pformat(data)
+            "Payway capture request response for transaction with reference %s:\n%s",
+            self.reference, pprint.pformat(data)
         )
 
-        # Prepare data for _process_notification_data to handle
         data.update({
-            'tran_id': self.provider_reference,
+            'tran_id': self.reference,
+            'payment_status': const.STATUS_MAPPING['APPROVED'],
         })
+        self.source_transaction_id._set_done()
+        self._record(data)
 
-        # Set the parent transaction to done directly, bypassing the notification pipeline.
-        # The parent was already validated at the pre-auth stage.
-        self._set_done()
-
-        if capture_child_tx:
-            capture_child_tx._handle_notification_data('aba_payway', data)
-
-        return capture_child_tx
-
-    def _send_void_request(self, amount_to_void=None):
-        """ Override of `payment` to send a void request to Adyen. """
-        child_void_tx = super()._send_void_request(amount_to_void=amount_to_void)
-
+    def _send_void_request(self):
+        """Override of `payment` to send a void request to PayWay."""
         if self.provider_code != 'aba_payway':
-            return child_void_tx
-        
-        # NOTE:
-        # Payway automatically void the remaining balance upon partial capture.
-        # Calling the cancelled API in this case will result in an error. we skip the cancel API request 
-        # if a capture has already occurred and directly void the remaining balance.
-        # 
-        # Logic:
-        # - state 'authorized': No capture has occurred yet; proceed with cancellation.
-        # - state 'done': Partial captured; skip API, update Odoo locally.
-        if self.state != "done":
+            return super()._send_void_request()
 
+        if self.source_transaction_id.state != "done":
             _, merchant_id, _, public_key_pem = self.provider_id._payway_get_api_cred()
             payload_merchant_auth = {
                 "mc_id": merchant_id,
-                "tran_id": self.provider_reference,
+                "tran_id": self.source_transaction_id.provider_reference or self.source_transaction_id.reference,
             }
-
             merchant_auth = self.provider_id._payway_calculate_merchant_auth(public_key_pem, payload_merchant_auth)
             data: dict = self.provider_id._payway_api_void_transaction(merchant_auth)
             _logger.info(
-                "Payway cancel request response for transaction with reference %s; payway_reference %s:\n%s",
-                self.reference, self.provider_reference, pprint.pformat(data)
+                "Payway cancel request response for transaction with reference %s:\n%s",
+                self.reference, pprint.pformat(data)
             )
-
-            # Prepare data for _process_notification_data to handle
             data.update({
-                'tran_id': self.provider_reference,
+                'tran_id': self.reference,
+                'payment_status': const.STATUS_MAPPING['CANCELLED'],
             })
-        
         else:
             data = {
-                # Override payment status to cancelled for local update since API call is skipped
                 'payment_status': const.STATUS_MAPPING['CANCELLED'],
-                'tran_id': self.provider_reference,
+                'tran_id': self.reference,
             }
-
             _logger.info(
-                "Payway transaction with reference %s; payway_reference %s already in 'Done' state, skipping void API call.",
-                self.reference, self.provider_reference
+                "Payway transaction with reference %s already in 'Done' state, skipping void API call.",
+                self.reference,
             )
 
-        self._handle_notification_data('aba_payway', data)
+        self._record(data)
 
-        if child_void_tx:
-            child_void_tx._handle_notification_data('aba_payway', data)
-        
-        return child_void_tx
+    @api.model
+    def _extract_reference(self, provider_code, payment_data):
+        """Override of `payment` to extract the reference from the PayWay data."""
+        if provider_code != 'aba_payway':
+            return super()._extract_reference(provider_code, payment_data)
+        return payment_data.get('tran_id') or payment_data.get('reference')
 
-
-    def _get_tx_from_notification_data(self, provider_code, notification_data):
-        """Override of `payment` to find the transaction based on the notification data.
-
-        :param str provider_code: The code of the provider that handled the transaction.
-        :param dict notification_data: The notification data sent by the provider.
-        :return: The transaction if found.
-        :rtype: payment.transaction
-        :raise ValidationError: If inconsistent data were received.
-        :raise ValidationError: If the data match no transaction.
-        """
-
-        tx = super()._get_tx_from_notification_data(provider_code, notification_data)
-        if provider_code != 'aba_payway' or len(tx) == 1:
-            return tx
-
-        tran_id = notification_data.get('tran_id', '')
-        if not tran_id:
-            raise ValidationError(
-                _("No transaction identifier received from ABA Payway.")
-            )
-
-        tx = self.search(
-            [('reference', '=', tran_id), ('provider_code', '=', 'aba_payway')]
-        )
-        if not tx:
-            raise ValidationError(_("No transaction found for the given identifier."))
-
-        return tx
-
-    def _process_notification_data(self, notification_data):
-        """Update the transaction state and the provider reference based on the notification data.
-
-        This method should usually not be called directly. The correct method to call upon receiving
-        notification data is :meth:`_handle_notification_data`.
-
-        For a provider to handle transaction processing, it must overwrite this method and process
-        the notification data.
-
-        Note: `self.ensure_one()`
-
-        :param dict notification_data: The notification data sent by the provider.
-        :return: None
-        """
-
+    def _apply_updates(self, payment_data):
+        """Override of `payment` to update the transaction based on the PayWay data."""
         self.ensure_one()
-
-        super()._process_notification_data(notification_data)
         if self.provider_code != 'aba_payway':
-            return
-        
-        tran_id = notification_data.get('tran_id', '')
-        is_from_webhook = self.env.context.get('payway_from_webhook', False)
+            return super()._apply_updates(payment_data)
 
-        # Check if payment status is manually set from upstream
-        upstream_payment_status = notification_data.get('payment_status', '').upper()
+        tran_id = payment_data.get('tran_id') or self.reference
+        is_from_webhook = self.env.context.get('payway_from_webhook', False)
+        upstream_payment_status = payment_data.get('payment_status', '').upper()
+
+        self.provider_reference = tran_id
+
         try:
-            payway_transaction_detail: dict = self.provider_id._payway_api_get_transaction_detail(tran_id)
-        
+            payway_transaction_detail = self.provider_id._payway_api_get_transaction_detail(tran_id)
         except ValidationError as e:
             _logger.warning(
-                "Failed to fetch payment method details for reference %s; Transaction status in odoo will set to pending; "
-                "payway reference %s; Error: %s", 
-                self.reference, tran_id, str(e)
+                "Failed to fetch payment details for reference %s; error: %s",
+                self.reference, str(e)
             )
             return
 
@@ -325,7 +245,7 @@ class PaymentTransaction(models.Model):
             if is_from_webhook
             else (
                 upstream_payment_status
-                if upstream_payment_status and upstream_payment_status == const.STATUS_MAPPING['CANCELLED']
+                if upstream_payment_status == const.STATUS_MAPPING['CANCELLED']
                 else api_payment_status
             )
         )
@@ -336,59 +256,36 @@ class PaymentTransaction(models.Model):
         )
         if not is_valid_settlement:
             _logger.warning(
-                "PayWay settlement validation failed for transaction %s and provider reference %s: %s; payload=%s",
-                self.reference,
-                tran_id,
-                settlement_validation_message,
-                pprint.pformat(payway_transaction_detail.get('data', {})),
+                "PayWay settlement validation failed for transaction %s: %s",
+                self.reference, settlement_validation_message
             )
-            self._set_pending(settlement_validation_message)
+            self._set_pending(state_message=settlement_validation_message)
             return
 
-        # Update the provider reference.
-        self.provider_reference = tran_id 
-        
         if (
-            (
-                payment_status == const.STATUS_MAPPING["APPROVED"]
-                or payment_status == const.STATUS_MAPPING["PRE-AUTH"]
-            )
+            payment_status in (const.STATUS_MAPPING['APPROVED'], const.STATUS_MAPPING['PRE-AUTH'])
             and self.state not in ('done', 'authorized')
         ):
             if self.payment_method_id.code == 'card':
-                # Update the payment method for card
                 payment_method_type = payway_transaction_detail.get('data', {}).get('payment_type', '').lower()
                 payment_method = self.env['payment.method']._get_from_code(
                     payment_method_type, mapping=const.PAYWAY_PAYMENT_METHODS_MAPPING
                 )
                 self.payment_method_id = payment_method or self.payment_method_id
 
-        if (
-            payment_status == const.STATUS_MAPPING["APPROVED"]
-            or payment_status == const.STATUS_MAPPING["REFUNDED"]
-        ):
+        if payment_status in (const.STATUS_MAPPING['APPROVED'], const.STATUS_MAPPING['REFUNDED']):
             self._set_done()
-
-            # Immediately post-process the transaction if it is a refund, as the post-processing
-            # will not be triggered by a customer browsing the transaction from the portal.
-            if self.operation == 'refund':
-                self.env.ref('payment.cron_post_process_payment_tx')._trigger()
-
-        elif payment_status == const.STATUS_MAPPING["PRE-AUTH"]:
+        elif payment_status == const.STATUS_MAPPING['PRE-AUTH']:
             self._set_authorized()
-
-        elif payment_status == const.STATUS_MAPPING["CANCELLED"]:
+        elif payment_status == const.STATUS_MAPPING['CANCELLED']:
             self._set_canceled()
-
         else:
             _logger.warning(
-                "Received data with invalid payment status: (%s) for transaction with "
-                "reference %s and payway reference %s", payment_status, self.reference, self.provider_reference
+                "Received data with invalid payment status: (%s) for transaction with reference %s",
+                payment_status, self.reference
             )
-
-            self._set_pending(_(
-                "Received unknown payment status: %(payment_status)s; reference %(reference)s; payway reference %(provider_reference)s", 
-                payment_status=payment_status, reference=self.reference, provider_reference=self.provider_reference
+            self._set_pending(state_message=self.env._(
+                "Received unknown payment status: %(status)s", status=payment_status
             ))
 
     # === Custom validation methods ===
