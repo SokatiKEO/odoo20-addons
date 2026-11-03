@@ -8,26 +8,32 @@ patch(PosOrderline.prototype, {
     isRefund() {
         return Boolean(this.order_id?.isRefund);
     },
+    get canGoToKitchen() {
+        if (this.combo_line_ids?.length) {
+            return this.combo_line_ids.some((child) => child.canGoToKitchen);
+        }
+        const prepCategories = this.config?.preparationCategories || this.order_id?.config?.preparationCategories;
+        if (!prepCategories || prepCategories.size === 0) {
+            return false;
+        }
+        const product = this.product_id;
+        return Boolean(product?.parentPosCategIds?.some((id) => prepCategories.has(id)));
+    },
     get isSentToKitchen() {
         if (this.combo_line_ids?.length) {
             return this.combo_line_ids.some((child) => child.isSentToKitchen);
         }
 
-        if (this.prep_status === "ready") {
+        if (this.prep_status === "ready" || this.prep_status === "served") {
             return true;
         }
 
-        const prepCategories = this.config?.preparationCategories || this.order_id?.config?.preparationCategories;
-        if (!prepCategories || prepCategories.size === 0) {
-            return false;
-        }
-
-        const product = this.product_id;
-        if (product?.parentPosCategIds?.some((id) => prepCategories.has(id))) {
-            return true;
-        }
-
-        return false;
+        return Boolean(
+            this.prep_sent_time ||
+            (this.prep_line_ids && this.prep_line_ids.length > 0) ||
+            this.prep_stage_id ||
+            this.prep_stage_name
+        );
     },
     get isPrepReady() {
         if (this.combo_line_ids?.length) {
@@ -157,8 +163,11 @@ patch(PosOrderline.prototype, {
         return res;
     },
     get currentPrepStage() {
+        if (!this.isSentToKitchen && !this.manual_served && !this.isPrepServed) {
+            return null;
+        }
+
         const stageModels = this._getSortedPrepStages();
-        const firstStage = stageModels[0] || null;
         const lastStage = stageModels.length ? stageModels[stageModels.length - 1] : null;
 
         // For combo parent lines, aggregate from child lines
@@ -184,7 +193,7 @@ patch(PosOrderline.prototype, {
             }
             return {
                 id: null,
-                name: this.prep_stage_name || "",
+                name: this.prep_stage_name || "Served",
                 color: this.prep_stage_color || "#59C629",
                 sequence: 9999,
             };
@@ -219,10 +228,6 @@ patch(PosOrderline.prototype, {
                 color: this.prep_stage_color || "#C8C9CB",
                 sequence: 0,
             };
-        }
-
-        if (this.isSentToKitchen) {
-            return firstStage;
         }
 
         return null;
@@ -270,24 +275,52 @@ patch(PosOrderline.prototype, {
         }
         return "";
     },
-    get prepStageTimeDisplay() {
-        if (this.combo_line_ids?.length) {
-            const times = this.combo_line_ids.map((c) => c.prepStageTimeDisplay).filter(Boolean);
-            return times[0] || "";
-        }
-        return this._formatTime(
-            this.prep_stage_change_time ||
-            this.prep_sent_time ||
-            this.prep_line_ids?.[0]?.last_stage_change ||
-            this.prep_line_ids?.[0]?.create_date
-        );
-    },
     get prepSentTimeDisplay() {
         if (this.combo_line_ids?.length) {
             const times = this.combo_line_ids.map((c) => c.prepSentTimeDisplay).filter(Boolean);
             return times[0] || "";
         }
         return this._formatTime(this.prep_sent_time || this.prep_line_ids?.[0]?.create_date);
+    },
+    get prepServedTimeDisplay() {
+        if (this.combo_line_ids?.length) {
+            if (!this.isPrepServed) {
+                return "";
+            }
+            const times = this.combo_line_ids.map((c) => c.prepServedTimeDisplay).filter(Boolean);
+            return times[times.length - 1] || times[0] || "";
+        }
+        if (!this.isPrepServed && this.prep_status !== "served" && !this.manual_served) {
+            return "";
+        }
+        return this._formatTime(
+            this.prep_served_time ||
+            (this.isPrepServed ? (this.prep_stage_change_time || this.prep_sent_time) : false)
+        );
+    },
+    get prepTimingDisplay() {
+        if (!this.isSentToKitchen && !this.isPrepServed) {
+            return "";
+        }
+        const orderTime = this.prepSentTimeDisplay;
+        const servedTime = this.prepServedTimeDisplay;
+        const cashier = this.cashierName;
+
+        const parts = [];
+        if (orderTime) {
+            parts.push(`Order: ${orderTime}`);
+        }
+        if (servedTime) {
+            parts.push(`Served: ${servedTime}`);
+        }
+        if (!parts.length) {
+            return "";
+        }
+        const timeStr = parts.join(". ");
+        return cashier ? `${timeStr} - ${cashier}` : timeStr;
+    },
+    get prepStageTimeDisplay() {
+        return this.prepTimingDisplay;
     },
     get prepStageChangeTimeDisplay() {
         if (this.combo_line_ids?.length) {
@@ -318,11 +351,8 @@ patch(PosOrderline.prototype, {
             return "";
         }
         const parts = [stage.name];
-        if (this.prepStageTimeDisplay) {
-            parts.push(this.prepStageTimeDisplay);
-        }
-        if (this.cashierName) {
-            parts.push(this.cashierName);
+        if (this.prepTimingDisplay) {
+            parts.push(this.prepTimingDisplay);
         }
         return parts.join(" • ");
     },
@@ -337,7 +367,7 @@ patch(PosOrderline.prototype, {
         return brightness > 155 ? "#1a1a1a" : "#ffffff";
     },
     async toggleServed() {
-        if (this.isSentToKitchen) {
+        if (this.canGoToKitchen) {
             return;
         }
 
@@ -348,10 +378,11 @@ patch(PosOrderline.prototype, {
 
         this.manual_served = nextState;
         this.prep_status = nextState ? "served" : false;
-        this.prep_stage_change_time = nextState ? now : false;
+        this.prep_served_time = nextState ? now : false;
         if (!this.prep_sent_time) {
             this.prep_sent_time = now;
         }
+        this.prep_stage_change_time = nextState ? now : false;
         this.prep_stage_id = nextState && lastStage ? lastStage.id : false;
         this.prep_stage_name = nextState && lastStage ? lastStage.name : false;
         this.prep_stage_color = nextState && lastStage ? lastStage.color : false;
@@ -359,9 +390,10 @@ patch(PosOrderline.prototype, {
         // If this is a combo parent line, toggle any non-kitchen combo children
         if (this.combo_line_ids?.length) {
             for (const child of this.combo_line_ids) {
-                if (!child.isSentToKitchen) {
+                if (!child.canGoToKitchen) {
                     child.manual_served = nextState;
                     child.prep_status = nextState ? "served" : false;
+                    child.prep_served_time = nextState ? now : false;
                     child.prep_stage_id = nextState && lastStage ? lastStage.id : false;
                     child.prep_stage_name = nextState && lastStage ? lastStage.name : false;
                     child.prep_stage_color = nextState && lastStage ? lastStage.color : false;

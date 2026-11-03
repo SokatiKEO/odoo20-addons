@@ -85,6 +85,13 @@ patch(PosStore.prototype, {
                 if (update.sent_time && !line.prep_sent_time) {
                     line.prep_sent_time = update.sent_time;
                 }
+                if (update.served_time) {
+                    line.prep_served_time = update.served_time;
+                } else if (status === "served" && !line.prep_served_time) {
+                    line.prep_served_time = update.stage_change_time || serializeDateTime(DateTime.now());
+                } else if (status !== "served" && !line.manual_served) {
+                    line.prep_served_time = false;
+                }
                 if (line.combo_parent_id) {
                     this._updateComboParentPrepStatus(line.combo_parent_id);
                 }
@@ -92,28 +99,51 @@ patch(PosStore.prototype, {
         }
         this.prepStageVersion++;
     },
+    _getInitialPrepStageForLine(line) {
+        if (!line?.product_id) {
+            return null;
+        }
+        const categIds = new Set(line.product_id.parentPosCategIds || []);
+        const displays = this.models?.["pos.prep.display"]?.getAll?.() || [];
+        for (const disp of displays) {
+            const dispCategIds = disp.category_ids?.map((c) => (typeof c === "object" ? c.id : c)) || [];
+            if (dispCategIds.length === 0 || dispCategIds.some((id) => categIds.has(id))) {
+                if (disp.stage_ids?.length) {
+                    const stages = [];
+                    for (const s of disp.stage_ids) {
+                        const stageObj = typeof s === "object" ? s : this.models?.["pos.prep.stage"]?.get(s);
+                        if (stageObj) {
+                            stages.push(stageObj);
+                        }
+                    }
+                    if (stages.length > 0) {
+                        stages.sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0) || a.id - b.id);
+                        return stages[0];
+                    }
+                }
+            }
+        }
+        return null;
+    },
     async sendOrderInPreparation(order, opts = {}) {
         const now = serializeDateTime(DateTime.now());
-        const stageModels = this.models?.["pos.prep.stage"]
-            ? [...this.models["pos.prep.stage"].getAll()].sort(
-                (a, b) => (a.sequence ?? 0) - (b.sequence ?? 0) || a.id - b.id
-            )
-            : [];
-        const firstStage = stageModels[0];
 
         if (order?.lines) {
             for (const line of order.lines) {
-                if (line.isSentToKitchen) {
+                if (line.canGoToKitchen) {
                     if (!line.prep_sent_time) {
                         line.prep_sent_time = now;
                     }
                     if (!line.prep_stage_change_time) {
                         line.prep_stage_change_time = now;
                     }
-                    if (!line.prep_stage_id && firstStage) {
-                        line.prep_stage_id = firstStage.id;
-                        line.prep_stage_name = firstStage.name;
-                        line.prep_stage_color = firstStage.color;
+                    if (!line.prep_stage_id && !line.prep_stage_name) {
+                        const initialStage = this._getInitialPrepStageForLine(line);
+                        if (initialStage) {
+                            line.prep_stage_id = initialStage.id;
+                            line.prep_stage_name = initialStage.name;
+                            line.prep_stage_color = initialStage.color;
+                        }
                     }
                 }
             }

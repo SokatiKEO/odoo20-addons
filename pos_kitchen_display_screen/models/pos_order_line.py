@@ -26,7 +26,13 @@ class PosOrderLine(models.Model):
         string="Sent to Kitchen Time",
         compute="_compute_prep_times",
         recursive=True,
-        help="Timestamp when the order line was sent to the kitchen",
+        help="Timestamp when the order line was first sent to the kitchen",
+    )
+    prep_served_time = fields.Datetime(
+        string="Served Time",
+        compute="_compute_prep_times",
+        recursive=True,
+        help="Timestamp when the order line was served or reached the final stage",
     )
     prep_stage_change_time = fields.Datetime(
         string="Stage Change Time",
@@ -50,37 +56,48 @@ class PosOrderLine(models.Model):
     @api.depends(
         "prep_line_ids.create_date",
         "prep_line_ids.last_stage_change",
+        "prep_line_ids.stage_id",
         "prep_line_ids.cancelled",
         "manual_served",
+        "prep_status",
         "write_date",
+        "create_date",
         "combo_line_ids.prep_sent_time",
-        "combo_line_ids.prep_stage_change_time",
+        "combo_line_ids.prep_served_time",
     )
     def _compute_prep_times(self):
-        """Compute timestamp when order line was sent to kitchen and when its stage changed."""
+        """Compute timestamps: sent to kitchen (first stage) and served (last stage)."""
         for line in self:
-            if line.manual_served:
-                line.prep_sent_time = line.create_date or fields.Datetime.now()
-                line.prep_stage_change_time = line.write_date or line.create_date or fields.Datetime.now()
-                continue
-
             if line.combo_line_ids:
                 sent_times = [c.prep_sent_time for c in line.combo_line_ids if c.prep_sent_time]
-                stage_times = [c.prep_stage_change_time for c in line.combo_line_ids if c.prep_stage_change_time]
+                served_times = [c.prep_served_time for c in line.combo_line_ids if c.prep_served_time]
                 line.prep_sent_time = min(sent_times) if sent_times else False
-                line.prep_stage_change_time = max(stage_times) if stage_times else False
+                line.prep_served_time = (
+                    max(served_times)
+                    if (served_times and len(served_times) == len(line.combo_line_ids))
+                    else False
+                )
+                line.prep_stage_change_time = line.prep_served_time or line.prep_sent_time or False
                 continue
 
             active_prep = line.prep_line_ids.filtered(lambda pl: not pl.cancelled)
             if active_prep:
                 sent_dates = [pl.create_date for pl in active_prep if pl.create_date]
                 line.prep_sent_time = min(sent_dates) if sent_dates else False
-
-                stage_dates = [pl.last_stage_change for pl in active_prep if pl.last_stage_change]
-                line.prep_stage_change_time = max(stage_dates) if stage_dates else (line.prep_sent_time or False)
+            elif line.manual_served:
+                line.prep_sent_time = line.create_date or fields.Datetime.now()
             else:
                 line.prep_sent_time = False
-                line.prep_stage_change_time = False
+
+            if line.manual_served:
+                line.prep_served_time = line.write_date or line.create_date or fields.Datetime.now()
+            elif active_prep and line.prep_status == "served":
+                stage_dates = [pl.last_stage_change for pl in active_prep if pl.last_stage_change]
+                line.prep_served_time = max(stage_dates) if stage_dates else fields.Datetime.now()
+            else:
+                line.prep_served_time = False
+
+            line.prep_stage_change_time = line.prep_served_time or line.prep_sent_time or False
 
     @api.depends("prep_line_ids.stage_id", "prep_line_ids.cancelled", "manual_served", "combo_line_ids.prep_stage_id")
     def _compute_prep_stage_id(self):
@@ -180,8 +197,13 @@ class PosOrderLine(models.Model):
                 line.prep_stage_color = line.prep_stage_id.color or "#C8C9CB"
             # 3. Fallback for items sent to kitchen
             elif line.prep_line_ids:
-                line.prep_stage_name = first_stage.name if first_stage else ""
-                line.prep_stage_color = first_stage.color if first_stage else "#C8C9CB"
+                active_prep = line.prep_line_ids.filtered(lambda pl: not pl.cancelled and pl.stage_id)
+                if active_prep:
+                    line.prep_stage_name = active_prep[-1].stage_id.name
+                    line.prep_stage_color = active_prep[-1].stage_id.color or "#C8C9CB"
+                else:
+                    line.prep_stage_name = False
+                    line.prep_stage_color = False
             else:
                 line.prep_stage_name = False
                 line.prep_stage_color = False
@@ -197,6 +219,7 @@ class PosOrderLine(models.Model):
                     config._notify("ORDER_STATE_CHANGED", {})
                     stage_name = line.prep_stage_name or "Served"
                     stage_color = line.prep_stage_color or "#59C629"
+                    now_str = fields.Datetime.to_string(fields.Datetime.now())
                     config._notify("POS_PREP_STAGE_UPDATE", {
                         "updates": [{
                             "order_id": line.order_id.id,
@@ -208,8 +231,9 @@ class PosOrderLine(models.Model):
                             "stage_id": line.prep_stage_id.id if line.prep_stage_id else None,
                             "stage_name": stage_name,
                             "stage_color": stage_color,
-                            "stage_change_time": fields.Datetime.to_string(fields.Datetime.now()),
+                            "stage_change_time": now_str,
                             "sent_time": fields.Datetime.to_string(line.create_date or fields.Datetime.now()),
+                            "served_time": now_str,
                             "cashier_name": line.order_id.cashier_name or "",
                         }]
                     })
@@ -228,6 +252,8 @@ class PosOrderLine(models.Model):
                         stage_name = line.prep_stage_name or ("Served" if line.manual_served else "")
                         stage_color = line.prep_stage_color or ("#59C629" if line.manual_served else "")
                         status = "served" if line.manual_served else False
+                        now_str = fields.Datetime.to_string(fields.Datetime.now())
+                        served_time = now_str if line.manual_served else False
                         config._notify("POS_PREP_STAGE_UPDATE", {
                             "updates": [{
                                 "order_id": line.order_id.id,
@@ -239,8 +265,9 @@ class PosOrderLine(models.Model):
                                 "stage_id": line.prep_stage_id.id if line.prep_stage_id else None,
                                 "stage_name": stage_name,
                                 "stage_color": stage_color,
-                                "stage_change_time": fields.Datetime.to_string(fields.Datetime.now()),
+                                "stage_change_time": now_str,
                                 "sent_time": fields.Datetime.to_string(line.create_date or fields.Datetime.now()),
+                                "served_time": served_time,
                                 "cashier_name": line.order_id.cashier_name or "",
                             }]
                         })
@@ -257,6 +284,7 @@ class PosOrderLine(models.Model):
             "prep_stage_color",
             "manual_served",
             "prep_sent_time",
+            "prep_served_time",
             "prep_stage_change_time",
         )
         for field in extra:
@@ -274,6 +302,7 @@ class PosOrderLine(models.Model):
             "prep_stage_name",
             "prep_stage_color",
             "prep_sent_time",
+            "prep_served_time",
             "prep_stage_change_time",
             "manual_served",
         ]

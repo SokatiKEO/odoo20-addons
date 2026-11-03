@@ -8,7 +8,7 @@
             <t t-set="stageDisplay" t-value="this.line.prepStageDisplay"/>
 
             <!-- 1. Non-kitchen item not yet served: Serve button for cashier -->
-            <button t-if="!this.line.isSentToKitchen and !this.line.isPrepServed"
+            <button t-if="!this.line.canGoToKitchen and !this.line.isPrepServed"
                     type="button"
                     class="btn btn-sm btn-outline-success ms-2 py-0 px-2 align-middle fw-semibold text-nowrap pos-serve-btn"
                     title="Mark as Served"
@@ -17,7 +17,7 @@
             </button>
 
             <!-- 2. Non-kitchen item marked served: Clickable badge so cashier can un-serve if needed -->
-            <span t-elif="!this.line.isSentToKitchen and this.line.isPrepServed"
+            <span t-elif="!this.line.canGoToKitchen and this.line.isPrepServed"
                   class="badge rounded-pill ms-2 align-middle fw-bold text-nowrap pos-prep-badge pos-prep-badge-clickable cursor-pointer"
                   t-attf-style="background-color: {{ stageDisplay ? stageDisplay.color : '#198754' }}; color: {{ stageDisplay ? stageDisplay.textColor : '#ffffff' }}; border: 1px solid {{ stageDisplay ? stageDisplay.color : '#146c43' }};"
                   role="button"
@@ -39,20 +39,10 @@
             </span>
 
             <!-- 4. Preparation Timestamp & Cashier Name -->
-            <span t-if="this.line.prepStageTimeDisplay or this.line.cashierName"
+            <span t-if="this.line.prepTimingDisplay"
                   class="d-block pos-prep-time-row small text-muted mt-1">
-                <span t-if="this.line.prepStageTimeDisplay"
-                      class="d-inline-flex align-items-center me-2"
-                      t-att-title="stageDisplay ? stageDisplay.name : 'Time'">
-                    <i class="oi me-1" data-icon="schedule" style="font-size: 0.65rem;"/>
-                    <t t-out="this.line.prepStageTimeDisplay"/>
-                </span>
-                <span t-if="this.line.cashierName"
-                      class="d-inline-flex align-items-center text-truncate"
-                      title="Cashier">
-                    <i class="oi me-1" data-icon="user" style="font-size: 0.65rem;"/>
-                    <t t-out="this.line.cashierName"/>
-                </span>
+                <i class="oi me-1" data-icon="schedule" style="font-size: 0.65rem;"/>
+                <t t-out="this.line.prepTimingDisplay"/>
             </span>
         </xpath>
     </t>

@@ -113,6 +113,7 @@ class PosPrepLine(models.Model):
 
             stage_change_time = fields.Datetime.to_string(prep_line.last_stage_change or fields.Datetime.now())
             sent_time = fields.Datetime.to_string(prep_line.create_date or fields.Datetime.now())
+            served_time = stage_change_time if status == "served" else False
             cashier_name = order.cashier_name or (order.employee_id.name if hasattr(order, "employee_id") and order.employee_id else (order.user_id.name if order.user_id else ""))
 
             configs_to_notify[config].append({
@@ -126,6 +127,7 @@ class PosPrepLine(models.Model):
                 "stage_color": display_stage_color,
                 "stage_change_time": stage_change_time,
                 "sent_time": sent_time,
+                "served_time": served_time,
                 "cashier_name": cashier_name,
             })
 
@@ -149,6 +151,8 @@ class PosPrepLine(models.Model):
                     p_stage_color = ready_stage[0].color or "#008bf5"
                     p_stage_id = ready_stage[0].id
 
+                p_served_time = stage_change_time if parent_status == "served" else False
+
                 configs_to_notify[config].append({
                     "order_id": order.id,
                     "order_uuid": getattr(order, "uuid", None),
@@ -160,6 +164,7 @@ class PosPrepLine(models.Model):
                     "stage_color": p_stage_color,
                     "stage_change_time": stage_change_time,
                     "sent_time": sent_time,
+                    "served_time": p_served_time,
                     "cashier_name": cashier_name,
                 })
 
