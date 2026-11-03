@@ -17,7 +17,7 @@ Enhance your Odoo Point of Sale experience with advanced stock management capabi
     "license": "OPL-1",
     "price": 32,
     "currency": "EUR",
-    "depends": ["point_of_sale", "pos_stock"],
+    "depends": ["point_of_sale", "pos_stock", "pos_self_order"],
     "data": [
         "security/ir.access.csv",
         "views/res_config_settings.xml",
@@ -29,6 +29,10 @@ Enhance your Odoo Point of Sale experience with advanced stock management capabi
     "assets": {
         "point_of_sale._assets_pos": [
             "pos_stock_count/static/src/**/*",
+            ("remove", "pos_stock_count/static/src/self_order/**/*"),
+        ],
+        "pos_self_order.assets": [
+            "pos_stock_count/static/src/self_order/**/*",
         ],
     },
     "images": [

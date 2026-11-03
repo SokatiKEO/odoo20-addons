@@ -37,3 +37,23 @@ class PosConfig(models.Model):
         default="top-left",
         string="Stock Badge Position",
     )
+
+    @api.model
+    def _load_pos_self_data_fields(self, config_id):
+        """Append stock configuration fields to self-order POS config data.
+
+        :param int config_id: POS configuration record ID.
+        :return: List of ``pos.config`` field names to load in self-order.
+        :rtype: list[str]
+        """
+        fields = super()._load_pos_self_data_fields(config_id)
+        extra = [
+            "warehouse_id",
+            "ab_stock_qty_type",
+            "ab_stock_deny",
+            "ab_stock_deny_qty",
+        ]
+        for field in extra:
+            if field not in fields:
+                fields.append(field)
+        return fields

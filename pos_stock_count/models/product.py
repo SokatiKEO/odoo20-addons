@@ -68,6 +68,26 @@ class ProductTemplate(models.Model):
                 field_names.append(fname)
         return field_names
 
+    @api.model
+    def _load_pos_self_data_fields(self, config):
+        """Append stock display and validation fields to self-order product template data.
+
+        :param recordset config: Active ``pos.config`` record.
+        :return: List of ``product.template`` field names to load in self-order.
+        :rtype: list[str]
+        """
+        field_names = super()._load_pos_self_data_fields(config)
+        for fname in (
+            "is_storable",
+            "ab_stock_warehouses",
+            "ab_stock_out_of_stock",
+            "ab_stock_deny",
+            "ab_stock_deny_qty",
+        ):
+            if fname not in field_names:
+                field_names.append(fname)
+        return field_names
+
     @api.model_create_multi
     def create(self, vals_list):
         """Create product templates and notify active POS sessions of changes.
@@ -135,6 +155,26 @@ class ProductProduct(models.Model):
         :rtype: list[str]
         """
         field_names = super()._load_pos_data_fields(config)
+        for fname in (
+            "is_storable",
+            "ab_stock_warehouses",
+            "ab_stock_out_of_stock",
+            "ab_stock_deny",
+            "ab_stock_deny_qty",
+        ):
+            if fname not in field_names:
+                field_names.append(fname)
+        return field_names
+
+    @api.model
+    def _load_pos_self_data_fields(self, config):
+        """Append stock display and validation fields to self-order product variant data.
+
+        :param recordset config: Active ``pos.config`` record.
+        :return: List of ``product.product`` field names to load in self-order.
+        :rtype: list[str]
+        """
+        field_names = super()._load_pos_self_data_fields(config)
         for fname in (
             "is_storable",
             "ab_stock_warehouses",

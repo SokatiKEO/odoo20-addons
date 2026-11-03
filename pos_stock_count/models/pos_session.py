@@ -58,4 +58,7 @@ class PosSession(models.Model):
                     "product_tmpl_ids": product_tmpl_ids,
                 },
             )
+            if session.config_id.self_ordering_mode != "nothing" and session.config_id.access_token:
+                for prod in products:
+                    prod._send_availability_status()
         request.update_context(**{PRODUCT_CHANGE_KEY: set()})

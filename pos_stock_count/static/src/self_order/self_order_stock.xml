@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="pos_self_order.ProductPage" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('alert-warning')]" position="after">
+            <div t-if="this.isOutOfStock" class="alert alert-danger text-center mb-3 fw-bold">
+                Out of stock
+            </div>
+        </xpath>
+    </t>
+</templates>
