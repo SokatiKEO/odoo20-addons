@@ -112,14 +112,14 @@ class PosOrderLine(models.Model):
             else:
                 line.prep_stage_id = False
 
-    @api.depends("manual_served", "prep_line_ids.stage_id", "prep_line_ids.todo", "prep_line_ids.cancelled", "combo_line_ids.prep_status")
+    @api.depends("manual_served", "prep_line_ids.stage_id", "prep_line_ids.cancelled", "combo_line_ids.prep_status")
     def _compute_prep_status(self):
         """Compute the preparation status for cashier display.
 
         Returns:
-            - 'served': if manually marked by cashier OR if all prep lines / combo children are Completed/Served.
-            - 'ready': if any active prep line (or combo child line) is ready for pickup.
-            - False: if lines are still in progress / cooking or unserved.
+            - 'served': if manually marked by cashier OR if all prep lines / combo children are in final stage.
+            - 'ready': if prep line's stage is marked ready.
+            - False: if lines are still in progress or unserved.
         """
         for line in self:
             if line.manual_served:
@@ -174,26 +174,46 @@ class PosOrderLine(models.Model):
             if line.manual_served or line.prep_status == "served":
                 line.prep_stage_name = last_stage.name if last_stage else "Served"
                 line.prep_stage_color = last_stage.color if last_stage else "#59C629"
-            # 2. Ready stage (e.g. checkbox ticked done by kitchen staff)
-            elif line.prep_status == "ready":
-                ready_stage = stages.filtered(lambda s: "ready" in s.name.lower()) if stages else False
-                if not ready_stage and len(stages) > 2:
-                    ready_stage = stages[-2]
-                elif not ready_stage and len(stages) > 1:
-                    ready_stage = stages[1]
-                line.prep_stage_name = ready_stage.name if ready_stage else "Ready"
-                line.prep_stage_color = (ready_stage.color if ready_stage else False) or "#008bf5"
-            # 3. Active in-progress stage
+            # 2. Active in-progress stage from order card stage
             elif line.prep_stage_id:
                 line.prep_stage_name = line.prep_stage_id.name
                 line.prep_stage_color = line.prep_stage_id.color or "#C8C9CB"
-            # 4. Fallback for items sent to kitchen
+            # 3. Fallback for items sent to kitchen
             elif line.prep_line_ids:
                 line.prep_stage_name = first_stage.name if first_stage else ""
                 line.prep_stage_color = first_stage.color if first_stage else "#C8C9CB"
             else:
                 line.prep_stage_name = False
                 line.prep_stage_color = False
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        lines = super().create(vals_list)
+        for line in lines:
+            if line.manual_served and line.order_id:
+                line.order_id.write({"write_date": fields.Datetime.now()})
+                config = line.order_id.config_id
+                if config:
+                    config._notify("ORDER_STATE_CHANGED", {})
+                    stage_name = line.prep_stage_name or "Served"
+                    stage_color = line.prep_stage_color or "#59C629"
+                    config._notify("POS_PREP_STAGE_UPDATE", {
+                        "updates": [{
+                            "order_id": line.order_id.id,
+                            "order_uuid": getattr(line.order_id, "uuid", None),
+                            "line_id": line.id,
+                            "line_uuid": line.uuid,
+                            "status": "served",
+                            "manual_served": True,
+                            "stage_id": line.prep_stage_id.id if line.prep_stage_id else None,
+                            "stage_name": stage_name,
+                            "stage_color": stage_color,
+                            "stage_change_time": fields.Datetime.to_string(fields.Datetime.now()),
+                            "sent_time": fields.Datetime.to_string(line.create_date or fields.Datetime.now()),
+                            "cashier_name": line.order_id.cashier_name or "",
+                        }]
+                    })
+        return lines
 
     def write(self, vals):
         """Broadcast state updates to self-order and POS when cashier manually serves an item."""
@@ -215,6 +235,7 @@ class PosOrderLine(models.Model):
                                 "line_id": line.id,
                                 "line_uuid": line.uuid,
                                 "status": status,
+                                "manual_served": line.manual_served,
                                 "stage_id": line.prep_stage_id.id if line.prep_stage_id else None,
                                 "stage_name": stage_name,
                                 "stage_color": stage_color,

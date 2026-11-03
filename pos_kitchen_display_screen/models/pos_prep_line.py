@@ -5,14 +5,14 @@ class PosPrepLine(models.Model):
     _inherit = "pos.prep.line"
 
     def _get_prep_status(self):
-        """Determine real-time preparation status for cashier and customer display.
+        """Determine preparation status ('served', 'ready', or False) based strictly on stage_id.
 
         Stages logic:
         - Combo parent: derived from its child prep lines (combo_line_ids).
         - If no stage_id: not in preparation yet, returns False.
-        - Last stage (Completed / Served): always 'served'.
-        - Ready stage: 'served' if ticked done (todo=False); 'ready' if waiting for pickup (todo=True).
-        - Intermediate/First stage: 'ready' if ticked done (todo=False, finished cooking); False if cooking (todo=True).
+        - Last stage (Completed / Served): 'served'.
+        - Ready stage (stage named 'Ready' or penultimate stage): 'ready'.
+        - Other stages (e.g. 'To Cook', 'Preparing'): False (line displays current stage name and color).
         """
         self.ensure_one()
         if self.cancelled:
@@ -38,34 +38,30 @@ class PosPrepLine(models.Model):
             stages = self.env["pos.prep.stage"].search([], order="sequence, id")
 
         is_last = (stage.id == stages[-1].id) if stages else self.is_last_stage
-
-        # 1. Final stage: always served / completed
         if is_last:
             return "served"
 
-        # 2. When the kitchen ticks the item as done (todo=False), it is ready for collection
-        if not self.todo:
+        ready_stage = stages.filtered(lambda s: "ready" in s.name.lower()) if stages else False
+        if not ready_stage and len(stages) > 2:
+            ready_stage = stages[-2]
+        elif not ready_stage and len(stages) > 1:
+            ready_stage = stages[1]
+
+        if ready_stage and stage.id in ready_stage.ids:
             return "ready"
 
-        # 3. Intermediate/cooking stages in progress (todo=True): returns False so stage name/color is used
         return False
 
     def change_prep_line_stage(self, prep_display_id, direction=1):
-        """Override to notify POS cashier and customer self-order when kitchen changes line stage."""
+        """Notify POS cashier and customer self-order when kitchen order moves to a new stage."""
         res = super().change_prep_line_stage(prep_display_id, direction=direction)
         self._notify_pos_cashier_stage()
         return res
 
-    def change_state_status(self, todos):
-        """Override to notify POS cashier and customer self-order when item completion status changes."""
-        res = super().change_state_status(todos)
-        self._notify_pos_cashier_stage()
-        return res
-
     def write(self, vals):
-        """Notify POS cashier and customer self-order on any stage or completion state updates."""
+        """Notify POS cashier and customer self-order when kitchen order drops into a new stage."""
         res = super().write(vals)
-        if "stage_id" in vals or "todo" in vals or "cancelled" in vals:
+        if "stage_id" in vals or "cancelled" in vals:
             self._notify_pos_cashier_stage()
         return res
 
@@ -102,18 +98,18 @@ class PosPrepLine(models.Model):
             elif not ready_stage and len(stages) > 1:
                 ready_stage = stages[1]
 
-            if status == "served":
-                display_stage_name = last_stage.name if last_stage else "Served"
-                display_stage_color = last_stage.color if last_stage else "#59C629"
-                display_stage_id = last_stage.id if last_stage else (stage.id if stage else None)
-            elif status == "ready":
-                display_stage_name = ready_stage.name if ready_stage else "Ready"
-                display_stage_color = ready_stage.color if ready_stage else "#008bf5"
-                display_stage_id = ready_stage.id if ready_stage else (stage.id if stage else None)
-            else:
-                display_stage_name = stage.name if stage else ""
-                display_stage_color = stage.color if stage else ""
-                display_stage_id = stage.id if stage else None
+            display_stage_id = stage.id if stage else None
+            display_stage_name = stage.name if stage else ""
+            display_stage_color = stage.color if stage else ""
+
+            if status == "served" and last_stage:
+                display_stage_name = last_stage.name
+                display_stage_color = last_stage.color or "#59C629"
+                display_stage_id = last_stage.id
+            elif status == "ready" and ready_stage:
+                display_stage_name = ready_stage[0].name
+                display_stage_color = ready_stage[0].color or "#008bf5"
+                display_stage_id = ready_stage[0].id
 
             stage_change_time = fields.Datetime.to_string(prep_line.last_stage_change or fields.Datetime.now())
             sent_time = fields.Datetime.to_string(prep_line.create_date or fields.Datetime.now())
@@ -140,18 +136,18 @@ class PosPrepLine(models.Model):
                 parent_status = parent_prep._get_prep_status()
                 parent_stage = parent_prep.stage_id or stage
 
-                if parent_status == "served":
-                    p_stage_name = last_stage.name if last_stage else "Served"
-                    p_stage_color = last_stage.color if last_stage else "#59C629"
-                    p_stage_id = last_stage.id if last_stage else None
-                elif parent_status == "ready":
-                    p_stage_name = ready_stage.name if ready_stage else "Ready"
-                    p_stage_color = ready_stage.color if ready_stage else "#008bf5"
-                    p_stage_id = ready_stage.id if ready_stage else None
-                else:
-                    p_stage_name = parent_stage.name if parent_stage else ""
-                    p_stage_color = parent_stage.color if parent_stage else ""
-                    p_stage_id = parent_stage.id if parent_stage else None
+                p_stage_id = parent_stage.id if parent_stage else None
+                p_stage_name = parent_stage.name if parent_stage else ""
+                p_stage_color = parent_stage.color if parent_stage else ""
+
+                if parent_status == "served" and last_stage:
+                    p_stage_name = last_stage.name
+                    p_stage_color = last_stage.color or "#59C629"
+                    p_stage_id = last_stage.id
+                elif parent_status == "ready" and ready_stage:
+                    p_stage_name = ready_stage[0].name
+                    p_stage_color = ready_stage[0].color or "#008bf5"
+                    p_stage_id = ready_stage[0].id
 
                 configs_to_notify[config].append({
                     "order_id": order.id,

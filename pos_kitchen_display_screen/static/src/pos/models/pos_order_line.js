@@ -5,6 +5,9 @@ import { deserializeDateTime, serializeDateTime } from "@web/core/l10n/dates";
 const { DateTime } = luxon;
 
 patch(PosOrderline.prototype, {
+    isRefund() {
+        return Boolean(this.order_id?.isRefund);
+    },
     get isSentToKitchen() {
         if (this.combo_line_ids?.length) {
             return this.combo_line_ids.some((child) => child.isSentToKitchen);
@@ -75,9 +78,6 @@ patch(PosOrderline.prototype, {
         if (this.manual_served || this.isPrepServed) {
             return true;
         }
-        if (this.isPrepReady || this.prep_status === "ready") {
-            return true;
-        }
         if (this.combo_line_ids?.length) {
             return this.combo_line_ids.some((child) => child.isProgressedPrepStage);
         }
@@ -138,10 +138,23 @@ patch(PosOrderline.prototype, {
             if (pos?.numberBuffer) {
                 pos.numberBuffer.reset();
             }
+            if (order.table_id && order.isSynced) {
+                pos?.addPendingOrder?.([order.id]);
+                pos?.syncAllOrdersDebounced?.();
+            }
             return true;
         }
 
-        return super.setQuantity(quantity, keep_price);
+        const res = super.setQuantity(quantity, keep_price);
+        const order = this.order_id;
+        if (order && order.table_id && order.isSynced) {
+            const pos = order.pos || this.models?.["pos.order.line"]?.env?.services?.pos;
+            if (pos) {
+                pos.addPendingOrder([order.id]);
+                pos.syncAllOrdersDebounced?.();
+            }
+        }
+        return res;
     },
     get currentPrepStage() {
         const stageModels = this._getSortedPrepStages();
@@ -175,20 +188,6 @@ patch(PosOrderline.prototype, {
                 color: this.prep_stage_color || "#59C629",
                 sequence: 9999,
             };
-        }
-
-        if (this.isPrepReady || this.prep_status === "ready") {
-            const readyStage = stageModels.find((s) => (s.name || "").toLowerCase().includes("ready"));
-            if (readyStage) {
-                return readyStage;
-            }
-            if (stageModels.length > 2) {
-                return stageModels[stageModels.length - 2];
-            }
-            if (stageModels.length > 1) {
-                return stageModels[1];
-            }
-            return firstStage;
         }
 
         const stageId = typeof this.prep_stage_id === "object" ? this.prep_stage_id?.id : this.prep_stage_id;
@@ -337,7 +336,7 @@ patch(PosOrderline.prototype, {
         const brightness = (r * 299 + g * 587 + b * 114) / 1000;
         return brightness > 155 ? "#1a1a1a" : "#ffffff";
     },
-    toggleServed() {
+    async toggleServed() {
         if (this.isSentToKitchen) {
             return;
         }
@@ -370,6 +369,7 @@ patch(PosOrderline.prototype, {
                     if (!child.prep_sent_time) {
                         child.prep_sent_time = now;
                     }
+                    child.markDirty?.();
                 }
             }
         }
@@ -388,10 +388,19 @@ patch(PosOrderline.prototype, {
             parent.prep_stage_name = allChildrenServed && lastStage ? lastStage.name : false;
             parent.prep_stage_color = allChildrenServed && lastStage ? lastStage.color : false;
             parent.prep_stage_change_time = now;
+            parent.markDirty?.();
         }
 
-        if (this.order_id) {
-            this.order_id.uiState.booked = true;
+        const order = this.order_id;
+        if (order) {
+            order.uiState.booked = true;
+            this.markDirty?.();
+            order.markDirty?.();
+            const pos = order.pos || this.models?.["pos.order.line"]?.env?.services?.pos;
+            if (pos) {
+                pos.addPendingOrder([order.id]);
+                await pos.syncAllOrders({ orders: [order] });
+            }
         }
     },
     getDisplayClasses() {

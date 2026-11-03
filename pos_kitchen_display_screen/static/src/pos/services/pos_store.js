@@ -63,6 +63,13 @@ patch(PosStore.prototype, {
 
             if (line) {
                 line.prep_status = status;
+                if (update.manual_served !== undefined) {
+                    line.manual_served = update.manual_served;
+                } else if (status === "served") {
+                    line.manual_served = true;
+                } else if (status === false) {
+                    line.manual_served = false;
+                }
                 if (stage_id) {
                     line.prep_stage_id = stage_id;
                 }
@@ -112,6 +119,15 @@ patch(PosStore.prototype, {
             }
         }
         return await super.sendOrderInPreparation(...arguments);
+    },
+    async addLineToOrder(vals, order, opts = {}, configure = true) {
+        const line = await super.addLineToOrder(...arguments);
+        if (order && order.table_id && order.isSynced) {
+            order.uiState.booked = true;
+            this.addPendingOrder([order.id]);
+            this.syncAllOrdersDebounced?.();
+        }
+        return line;
     },
     _updateComboParentPrepStatus(parentLine) {
         if (!parentLine || !parentLine.combo_line_ids?.length) {

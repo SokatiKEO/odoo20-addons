@@ -21,6 +21,13 @@ patch(SelfOrder.prototype, {
                     }
                     if (line) {
                         line.prep_status = upd.status;
+                        if (upd.manual_served !== undefined) {
+                            line.manual_served = upd.manual_served;
+                        } else if (upd.status === "served") {
+                            line.manual_served = true;
+                        } else if (upd.status === false) {
+                            line.manual_served = false;
+                        }
                         if (upd.stage_id) {
                             line.prep_stage_id = upd.stage_id;
                         }
