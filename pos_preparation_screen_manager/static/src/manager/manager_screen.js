@@ -121,17 +121,6 @@
 
     function resolveInitialSelectedIds() {
         if (
-            Array.isArray(savedState.selectedIds) &&
-            savedState.selectedIds.length > 0
-        ) {
-            const validSaved = savedState.selectedIds.filter((id) =>
-                allDisplaysMap.has(id)
-            );
-            if (validSaved.length > 0) {
-                return validSaved;
-            }
-        }
-        if (
             Array.isArray(config.selected_display_ids) &&
             config.selected_display_ids.length > 0
         ) {
@@ -140,6 +129,17 @@
             );
             if (validConfig.length > 0) {
                 return validConfig;
+            }
+        }
+        if (
+            Array.isArray(savedState.selectedIds) &&
+            savedState.selectedIds.length > 0
+        ) {
+            const validSaved = savedState.selectedIds.filter((id) =>
+                allDisplaysMap.has(id)
+            );
+            if (validSaved.length > 0) {
+                return validSaved;
             }
         }
         return config.all_displays.map((d) => d.id);
@@ -228,8 +228,13 @@
     }
 
     function renderTabs() {
+        if (!tabsNavEl) {
+            return;
+        }
         tabsNavEl.innerHTML = "";
-        badgeSelectedCount.textContent = String(selectedIds.length);
+        if (badgeSelectedCount) {
+            badgeSelectedCount.textContent = String(selectedIds.length);
+        }
 
         for (const id of selectedIds) {
             const display = allDisplaysMap.get(id);
@@ -277,7 +282,7 @@
 
     function updateBadgeElements(displayId) {
         const count = liveStats.get(displayId)?.orderCount ?? 0;
-        const tabBtn = tabsNavEl.querySelector(
+        const tabBtn = tabsNavEl?.querySelector(
             `[data-tab-display-id="${displayId}"] [data-role="tab-count"]`
         );
         if (tabBtn) {
@@ -293,15 +298,20 @@
     }
 
     function renderLayout() {
+        if (!containerEl) {
+            return;
+        }
         if (!selectedIds.includes(activeTabId)) {
             activeTabId = selectedIds[0] || null;
         }
 
         // Update view mode buttons
-        btnModeSplit.classList.toggle("active", viewMode === "split");
-        btnModeTabs.classList.toggle("active", viewMode === "tabs");
-        selectGridCols.value = gridColumns;
-        selectGridCols.style.display = viewMode === "split" ? "" : "none";
+        btnModeSplit?.classList.toggle("active", viewMode === "split");
+        btnModeTabs?.classList.toggle("active", viewMode === "tabs");
+        if (selectGridCols) {
+            selectGridCols.value = gridColumns;
+            selectGridCols.style.display = viewMode === "split" ? "" : "none";
+        }
 
         // Update viewport classes
         containerEl.className = `o_pdis_mgr_Viewport mode-${viewMode} cols-${gridColumns}`;
@@ -369,11 +379,11 @@
     function openScreensModal() {
         draftSelectedIds = new Set(selectedIds);
         renderChecklist();
-        modalBackdropEl.classList.remove("hidden");
+        modalBackdropEl?.classList.remove("hidden");
     }
 
     function closeScreensModal() {
-        modalBackdropEl.classList.add("hidden");
+        modalBackdropEl?.classList.add("hidden");
     }
 
     function renderChecklist() {
@@ -442,45 +452,45 @@
     }
 
     // Event Listeners
-    btnModeSplit.addEventListener("click", () => {
+    btnModeSplit?.addEventListener("click", () => {
         viewMode = "split";
         renderLayout();
         persistServerConfig();
     });
 
-    btnModeTabs.addEventListener("click", () => {
+    btnModeTabs?.addEventListener("click", () => {
         viewMode = "tabs";
         renderLayout();
         persistServerConfig();
     });
 
-    selectGridCols.addEventListener("change", () => {
+    selectGridCols?.addEventListener("change", () => {
         gridColumns = selectGridCols.value;
         renderLayout();
         persistServerConfig();
     });
 
-    btnOpenModal.addEventListener("click", openScreensModal);
-    btnCloseModal.addEventListener("click", closeScreensModal);
-    btnCancelModal.addEventListener("click", closeScreensModal);
+    btnOpenModal?.addEventListener("click", openScreensModal);
+    btnCloseModal?.addEventListener("click", closeScreensModal);
+    btnCancelModal?.addEventListener("click", closeScreensModal);
 
-    modalBackdropEl.addEventListener("click", (ev) => {
+    modalBackdropEl?.addEventListener("click", (ev) => {
         if (ev.target === modalBackdropEl) {
             closeScreensModal();
         }
     });
 
-    btnSelectAll.addEventListener("click", () => {
+    btnSelectAll?.addEventListener("click", () => {
         draftSelectedIds = new Set(config.all_displays.map((d) => d.id));
         renderChecklist();
     });
 
-    btnClearAll.addEventListener("click", () => {
+    btnClearAll?.addEventListener("click", () => {
         draftSelectedIds.clear();
         renderChecklist();
     });
 
-    btnApplyScreens.addEventListener("click", () => {
+    btnApplyScreens?.addEventListener("click", () => {
         selectedIds = config.all_displays
             .map((d) => d.id)
             .filter((id) => draftSelectedIds.has(id));
@@ -489,7 +499,7 @@
         persistServerConfig();
     });
 
-    btnToggleTheme.addEventListener("click", () => {
+    btnToggleTheme?.addEventListener("click", () => {
         const isDark =
             document.documentElement.getAttribute("data-theme") === "dark";
         const nextTheme = isDark ? "light" : "dark";
@@ -497,7 +507,7 @@
         window.location.reload();
     });
 
-    btnRefreshAll.addEventListener("click", () => {
+    btnRefreshAll?.addEventListener("click", () => {
         for (const panel of mountedPanels.values()) {
             const iframe = panel.querySelector("iframe");
             if (iframe && iframe.contentWindow) {
@@ -506,10 +516,10 @@
         }
     });
 
-    btnExitManager.addEventListener("click", () => {
+    btnExitManager?.addEventListener("click", () => {
         window.location.href =
             config.backend_url ||
-            "/odoo/action-pos_enterprise.action_preparation_display";
+            "/odoo/action-pos_preparation_screen_manager.action_pos_prep_screen_manager";
     });
 
     // Listen for live stats from embedded Preparation Display iframes

@@ -1,43 +1,65 @@
 import { patch } from "@web/core/utils/patch";
 import { PrepDisplay as PrepDisplayService } from "@pos_enterprise/app/services/preparation_display_service";
 
+const SYNC_CHANNEL_NAME = "pos_prep_display_sync";
+
 patch(PrepDisplayService.prototype, {
     async setup() {
         this.isReadOnly = Boolean(odoo.preparation_display?.is_readonly);
         this.isEmbed = Boolean(odoo.preparation_display?.is_embed);
+        this._isFetchingOrders = false;
         await super.setup(...arguments);
-        this._notifyManagerParent();
+        this._setupRealtimeSync();
     },
 
-    computeOrderCounts() {
-        super.computeOrderCounts(...arguments);
-        this._notifyManagerParent();
+    _setupRealtimeSync() {
+        if (typeof BroadcastChannel !== "undefined") {
+            try {
+                this._syncChannel = new BroadcastChannel(SYNC_CHANNEL_NAME);
+                this._syncChannel.addEventListener("message", (event) => {
+                    if (event.data?.type === "REFRESH_ORDERS") {
+                        this._safeRefreshOrders();
+                    }
+                });
+            } catch {
+                // Ignore if BroadcastChannel is restricted
+            }
+        }
+
+        if (this.isReadOnly || this.isEmbed) {
+            this._pollIntervalId = setInterval(() => {
+                if (document.visibilityState !== "hidden") {
+                    this._safeRefreshOrders();
+                }
+            }, 3000);
+        }
     },
 
-    _notifyManagerParent() {
-        if (!this.isEmbed || !window.parent || window.parent === window) {
+    _broadcastSync() {
+        if (this._syncChannel) {
+            try {
+                this._syncChannel.postMessage({
+                    type: "REFRESH_ORDERS",
+                    displayId: this.id,
+                    ts: Date.now(),
+                });
+            } catch {
+                // Ignore BroadcastChannel errors
+            }
+        }
+    },
+
+    async _safeRefreshOrders() {
+        if (this._isFetchingOrders) {
             return;
         }
+        this._isFetchingOrders = true;
         try {
-            const activeLines = this.activeLines || [];
-            const uniqueOrderIds = new Set(
-                activeLines
-                    .filter((line) => this.checkStateVisibility(line))
-                    .map((line) => line.prep_order_id?.id)
-                    .filter(Boolean)
-            );
-            window.parent.postMessage(
-                {
-                    type: "PDIS_MANAGER_SCREEN_STATS",
-                    displayId: this.id,
-                    orderCount: uniqueOrderIds.size,
-                    cardCount: this.filteredOrders ? this.filteredOrders.length : 0,
-                    lineCount: activeLines.length,
-                },
-                window.location.origin
-            );
+            await this.getPreparationDisplayOrder(null);
         } catch {
-            // Ignore cross-frame messaging errors during teardown
+            // Ignore transient polling errors
+        } finally {
+            this._isFetchingOrders = false;
         }
     },
 
@@ -45,21 +67,30 @@ patch(PrepDisplayService.prototype, {
         if (this.isReadOnly) {
             return;
         }
-        return super.syncStateStatus(...arguments);
+        const res = await super.syncStateStatus(...arguments);
+        this._broadcastSync();
+        return res;
     },
 
     async doneOrders() {
         if (this.isReadOnly) {
             return;
         }
-        return super.doneOrders(...arguments);
+        const res = await super.doneOrders(...arguments);
+        await this._safeRefreshOrders();
+        this._broadcastSync();
+        return res;
     },
 
     async changeStateStage() {
         if (this.isReadOnly) {
             return;
         }
-        return super.changeStateStage(...arguments);
+        const res = await super.changeStateStage(...arguments);
+        await this._safeRefreshOrders();
+        this.stageChangedOrderIds = [];
+        this._broadcastSync();
+        return res;
     },
 
     async changeStateStageAnimation() {
@@ -80,14 +111,19 @@ patch(PrepDisplayService.prototype, {
         if (this.isReadOnly) {
             return;
         }
-        return super.moveAllOrdersToNextStage(...arguments);
+        const res = await super.moveAllOrdersToNextStage(...arguments);
+        await this._safeRefreshOrders();
+        this._broadcastSync();
+        return res;
     },
 
     async resetOrders() {
         if (this.isReadOnly) {
             return;
         }
-        return super.resetOrders(...arguments);
+        const res = await super.resetOrders(...arguments);
+        this._broadcastSync();
+        return res;
     },
 
     async printPreparationTicket() {
@@ -104,4 +140,3 @@ patch(PrepDisplayService.prototype, {
         return super.assignBarcode(...arguments);
     },
 });
-
