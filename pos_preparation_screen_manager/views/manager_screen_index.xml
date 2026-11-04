@@ -29,6 +29,7 @@
 
                 <!-- Right Controls -->
                 <div class="o_pdis_mgr_actions">
+
                     <select id="select_grid_cols" class="o_mgr_select" title="Grid Columns in Split View">
                         <option value="auto">Auto Cols</option>
                         <option value="1">1 Col</option>
@@ -46,7 +47,6 @@
                             <span class="o_mgr_btn_label">Tabs</span>
                         </button>
                     </div>
-
                     
 
                     <button type="button" id="btn_open_screens_modal" class="o_mgr_btn o_mgr_btn_primary" title="Add or select preparation screens">

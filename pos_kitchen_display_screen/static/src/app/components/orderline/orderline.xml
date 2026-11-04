@@ -4,6 +4,9 @@
         <xpath expr="//div[hasclass('o_pdis_orderline_infos')]" position="attributes">
             <attribute name="class" add="align-items-center" separator=" "/>
         </xpath>
+        <xpath expr="//div[hasclass('o_pdis_quantity')]" position="attributes">
+            <attribute name="class" add="fw-bold" separator=" "/>
+        </xpath>
         <xpath expr="//div[hasclass('o_pdis_quantity')]" position="before">
             <div class="o_pdis_checkbox ps-2 pe-1 d-flex align-items-center flex-shrink-0" title="Toggle Done">
                 <input

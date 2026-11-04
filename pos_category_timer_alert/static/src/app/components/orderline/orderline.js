@@ -6,7 +6,8 @@ patch(Orderline.prototype, {
     setup() {
         super.setup();
         this.state = proxy({
-            duration: this.preparation_line?.computeTotalDuration() || 0,
+            duration: this.preparation_line?.computeFormattedDuration() || "00s",
+            timerParts: this.preparation_line?.computeTimerParts() || [{ val: "00", unit: "s" }],
             isAlert: Boolean(this.preparation_line?.computeIsAlert()),
         });
 
@@ -29,7 +30,8 @@ patch(Orderline.prototype, {
         if (!this.preparation_line) {
             return;
         }
-        this.state.duration = this.preparation_line.computeTotalDuration();
+        this.state.duration = this.preparation_line.computeFormattedDuration();
+        this.state.timerParts = this.preparation_line.computeTimerParts();
         this.state.isAlert = this.preparation_line.computeIsAlert();
     },
 
