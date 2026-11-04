@@ -30,7 +30,7 @@
             </button>
         </xpath>
         <xpath expr="//div[hasclass('o_pdis_orderline_infos')]" position="after">
-            <div t-if="this.stageTimeDisplay or this.cashierName" class="ms-4 small text-muted d-flex align-items-center gap-2 pb-1" style="font-size: 0.72rem;">
+            <div t-if="this.stageTimeDisplay or this.cashierName" class="ms-4 mt-1 small text-muted d-flex align-items-center gap-2 pb-1" style="font-size: 0.72rem;">
                 <span t-if="this.stageTimeDisplay" t-att-title="this.stageName || 'Time'">
                     <i class="oi me-1" data-icon="schedule" style="font-size: 0.65rem;"/>
                     <t t-out="this.stageTimeDisplay"/>
