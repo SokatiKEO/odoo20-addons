@@ -146,13 +146,13 @@ class PosOrder(models.Model):
 
     @api.model
     def _load_pos_preparation_data_fields(self):
-        """Include table_name and cashier_name in the preparation display fields.
+        """Include table_name, cashier_name, and source in the preparation display fields.
 
         :return: List of pos.order field names to load in preparation display.
         :rtype: list[str]
         """
         fields = super()._load_pos_preparation_data_fields()
-        for field in ("table_name", "cashier_name"):
+        for field in ("table_name", "cashier_name", "source"):
             if field not in fields:
                 fields.append(field)
         return fields

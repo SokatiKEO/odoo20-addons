@@ -7,20 +7,31 @@ patch(Order.prototype, {
     },
 
     get order_name() {
-        if (this.tableName) {
-            return this.tableName;
-        }
         const posOrder = this.order?.pos_order_id;
-        const table = posOrder?.table_id;
-        if (table) {
-            const tName = table.table_name || "";
-            const tNumber = table.table_number != null ? String(table.table_number) : "";
-            const floorName = table.floor_id?.name || "";
-            const label = tName.trim() || tNumber.trim();
-            if (label) {
-                return floorName ? `${label} (${floorName})` : label;
+        const floatingName = posOrder?.floating_order_name || "";
+        const isSelfOrder =
+            posOrder?.source === "mobile" ||
+            posOrder?.source === "kiosk" ||
+            (typeof floatingName === "string" && floatingName.toLowerCase().startsWith("self-order"));
+
+        let tableLabel = this.tableName;
+        if (!tableLabel) {
+            const table = posOrder?.table_id;
+            if (table) {
+                const tName = table.table_name || "";
+                const tNumber = table.table_number != null ? String(table.table_number) : "";
+                const floorName = table.floor_id?.name || "";
+                const label = tName.trim() || tNumber.trim();
+                if (label) {
+                    tableLabel = floorName ? `${label} (${floorName})` : label;
+                }
             }
         }
+
+        if (tableLabel) {
+            return isSelfOrder ? `Self-Order - ${tableLabel}` : tableLabel;
+        }
+
         return super.order_name;
     },
 
