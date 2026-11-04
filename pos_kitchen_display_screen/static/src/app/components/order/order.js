@@ -7,10 +7,20 @@ patch(Order.prototype, {
     },
 
     get order_name() {
-        const origName = super.order_name;
-        if (this.tableName && this.tableName !== origName) {
-            return `${this.tableName} - ${origName}`;
+        if (this.tableName) {
+            return this.tableName;
         }
-        return origName;
+        const posOrder = this.order?.pos_order_id;
+        const table = posOrder?.table_id;
+        if (table) {
+            const tName = table.table_name || "";
+            const tNumber = table.table_number != null ? String(table.table_number) : "";
+            const floorName = table.floor_id?.name || "";
+            const label = tName.trim() || tNumber.trim();
+            if (label) {
+                return floorName ? `${label} (${floorName})` : label;
+            }
+        }
+        return super.order_name;
     },
 });

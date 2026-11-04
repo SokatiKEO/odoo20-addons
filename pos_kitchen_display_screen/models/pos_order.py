@@ -118,23 +118,29 @@ class PosOrder(models.Model):
         """Compute the custom table name or table label for Kitchen Display Screen.
 
         Uses ``table_name`` from ``pos_table_name`` if set, falling back to
-        table number or table display name, including merged child tables.
+        table number, formatted with the floor name: 'Table Name (Floor)' or 'Table number (Floor)'.
         """
         for order in self:
             if hasattr(order, "table_id") and order.table_id:
                 table = order.table_id
-                name = getattr(table, "table_name", None) or getattr(table, "table_number", None)
-                label = str(name) if name else getattr(table, "name", "") or table.display_name or ""
+                t_name = getattr(table, "table_name", None)
+                t_number = getattr(table, "table_number", None)
+                label = str(t_name).strip() if (t_name and str(t_name).strip()) else (str(t_number).strip() if t_number is not None else "")
                 if hasattr(table, "floor_id") and table.floor_id:
                     child_tables = self.env["restaurant.table"].search([
                         ("parent_id", "=", table.id),
                         ("floor_id", "=", table.floor_id.id),
                     ])
                     for child in child_tables:
-                        c_name = getattr(child, "table_name", None) or getattr(child, "table_number", None)
-                        if c_name:
-                            label += f" & {c_name}"
-                order.table_name = label or False
+                        c_name = getattr(child, "table_name", None)
+                        c_num = getattr(child, "table_number", None)
+                        c_label = str(c_name).strip() if (c_name and str(c_name).strip()) else (str(c_num).strip() if c_num is not None else "")
+                        if c_label:
+                            label += f" & {c_label}"
+                    floor_name = table.floor_id.name
+                    order.table_name = f"{label} ({floor_name})" if floor_name else label
+                else:
+                    order.table_name = label or False
             else:
                 order.table_name = False
 
