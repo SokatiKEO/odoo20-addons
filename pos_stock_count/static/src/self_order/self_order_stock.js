@@ -203,3 +203,4 @@ patch(CartPage.prototype, {
         return super.changeQuantity(...arguments);
     },
 });
+

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="pos_enterprise.Orderline" t-inherit-mode="extension">
+        <xpath expr="//button[hasclass('o_pdis_preview_btn')]" position="before">
+            <span
+                t-if="this.hasTimer"
+                class="badge rounded-pill px-2 py-1 ms-auto flex-shrink-0 d-inline-flex align-items-center gap-1 small o_pdis_line_timer"
+                t-att-class="{
+                    'text-bg-danger o_pdis_line_alert_badge': this.state.isAlert,
+                    'o_pdis_line_timer--normal text-secondary border': !this.state.isAlert
+                }"
+                t-att-title="this.state.isAlert ? 'Category alert timer exceeded' : 'Preparation timer'"
+            >
+                <i class="oi" data-icon="schedule" style="font-size: 0.75rem;"/>
+                <t t-out="this.state.duration"/>m
+            </span>
+        </xpath>
+        <xpath expr="//section[hasclass('o_preparation_display_orderline')]" position="attributes">
+            <attribute name="t-attf-class" add="{{ this.state.isAlert ? 'o_pdis_orderline--alert' : '' }}" separator=" "/>
+        </xpath>
+    </t>
+</templates>

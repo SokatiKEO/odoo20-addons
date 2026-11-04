@@ -1,0 +1,99 @@
+// Read-Only & Mobile Compatibility Styles for POS Preparation Display
+
+.o_pdis_main_screen.o_pdis_readonly {
+    .o_pdis_order_card_header,
+    .o_pdis_orderline_infos,
+    .o_pdis_orderline > div {
+        cursor: default !important;
+    }
+
+    .o_pdis_preview_btn {
+        cursor: pointer !important;
+        pointer-events: auto !important;
+    }
+
+    .o_pdis_checkbox input[type="checkbox"] {
+        opacity: 0.75;
+        cursor: default !important;
+    }
+
+    .o_pdis_archive-order {
+        cursor: default !important;
+        pointer-events: none !important;
+    }
+}
+
+.o_pdis_main_screen.o_pdis_embedded {
+    .o_pdis_navbar {
+        height: 52px;
+        min-height: 52px;
+    }
+
+    .o_pdis_content {
+        height: calc(100vh - 52px);
+        position: relative;
+    }
+
+    // Hide standalone Close button when embedded inside Manager Hub
+    .o_pdis_navbar button:has(.o_pdis_close) {
+        display: none !important;
+    }
+}
+
+// Mobile & Tablet Responsive Enhancements
+@media (max-width: 991.98px) {
+    .o_pdis_main_screen {
+        .o_pdis_content {
+            position: relative;
+        }
+
+        .o_pdis_sidebar:not(.d-none) {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            z-index: 1050;
+            height: 100%;
+            box-shadow: 6px 0 20px rgba(0, 0, 0, 0.25);
+        }
+
+        .o_pdis_orders {
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)) !important;
+            padding: 0.65rem !important;
+            gap: 0.65rem !important;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .o_pdis_order_card {
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+    }
+}
+
+@media (max-width: 575.98px) {
+    .o_pdis_main_screen {
+        .o_pdis_navbar {
+            height: 50px !important;
+            min-height: 50px !important;
+        }
+
+        .o_pdis_content {
+            height: calc(100vh - 50px) !important;
+        }
+
+        .o_stage_tab {
+            font-size: 0.85rem !important;
+            padding: 0.3rem 0.6rem !important;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .o_pdis_orders {
+            grid-template-columns: 1fr !important;
+            padding: 0.5rem !important;
+            gap: 0.5rem !important;
+        }
+    }
+}
+

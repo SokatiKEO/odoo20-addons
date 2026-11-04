@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-name="pos_preparation_screen_manager.PrepDisplay" t-inherit="pos_enterprise.PrepDisplay" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('o_pdis_main_screen')]" position="attributes">
+            <attribute name="t-attf-class" add="{{ this.isReadOnly ? 'o_pdis_readonly' : '' }} {{ this.isEmbed ? 'o_pdis_embedded' : '' }}" separator=" "/>
+        </xpath>
+
+        <!-- Hide desktop Recall / Done action buttons in read-only mode -->
+        <xpath expr="//div[hasclass('top-buttons')]" position="attributes">
+            <attribute name="t-if">!this.isReadOnly</attribute>
+        </xpath>
+
+        <!-- Show Read-Only badge when opened standalone in read-only mode -->
+        <xpath expr="//div[hasclass('top-buttons')]" position="after">
+            <div t-if="this.isReadOnly and !this.isEmbed" class="d-flex align-items-center pe-2">
+                <span class="badge text-bg-info px-3 py-2 fs-6 d-flex align-items-center gap-1">
+                    <i class="oi" data-icon="eye" aria-hidden="true"/>
+                    <span>Read-Only</span>
+                </span>
+            </div>
+        </xpath>
+
+        <!-- Hide Recall and Done options in mobile burger menu when read-only -->
+        <xpath expr="//li[hasclass('recall-button')]" position="attributes">
+            <attribute name="t-if">!this.isReadOnly and !isLastStage and !isAllStage</attribute>
+        </xpath>
+        <xpath expr="//ul[hasclass('sub-menu')]/li[contains(@t-on-click, 'archiveAllVisibleOrders')]" position="attributes">
+            <attribute name="t-if">!this.isReadOnly and isLastStage and !isDebug</attribute>
+        </xpath>
+        <xpath expr="//ul[hasclass('sub-menu')]/li[contains(@t-on-click, 'resetOrders')]" position="attributes">
+            <attribute name="t-if">!this.isReadOnly and isDebug</attribute>
+        </xpath>
+
+        <!-- Hide Clear All Orders button in sidebar when read-only -->
+        <xpath expr="//div[contains(@t-on-click, 'clearAllOrders')]" position="attributes">
+            <attribute name="t-if">!this.isReadOnly and this.prepDisplay.selectedStageId and this.prepDisplay.filteredOrders.length</attribute>
+        </xpath>
+
+        <!-- Hide demo data button in read-only mode -->
+        <xpath expr="//a[contains(@t-on-click, 'loadScenarioRestaurantData')]" position="attributes">
+            <attribute name="t-if">!this.isReadOnly</attribute>
+        </xpath>
+    </t>
+</templates>
+

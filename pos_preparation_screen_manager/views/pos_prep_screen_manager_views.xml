@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_prep_screen_manager_view_form" model="ir.ui.view">
+        <field name="name">pos.prep.screen.manager.form</field>
+        <field name="model">pos.prep.screen.manager</field>
+        <field name="arch" type="xml">
+            <form string="Manager Preparation Screen">
+                <header>
+                    <button
+                        name="open_manager_ui"
+                        type="object"
+                        string="Open Manager Screen (Read-Only)"
+                        class="btn-primary"
+                    />
+                    <button
+                        name="action_add_all_displays"
+                        type="object"
+                        string="Add All Preparation Screens"
+                        class="btn-secondary"
+                        groups="point_of_sale.group_pos_manager"
+                    />
+                </header>
+                <sheet>
+                    <div class="oe_title mb-4">
+                        <label for="name"/>
+                        <h1>
+                            <field name="name" placeholder="e.g. Main Kitchen &amp; Bar Manager"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Layout &amp; Display Settings">
+                            <field name="default_view_mode" widget="radio"/>
+                            <field name="grid_columns" invisible="default_view_mode != 'split'"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group string="Live Overview">
+                            <field name="display_count"/>
+                            <field name="total_order_count"/>
+                            <field name="average_time"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Preparation Screens" name="preparation_screens">
+                            <p class="text-muted mb-2">
+                                Add as many preparation screens as you want to monitor. If left empty, all preparation screens in the company will be shown automatically.
+                            </p>
+                            <field name="preparation_display_ids">
+                                <list string="Preparation Screens">
+                                    <field name="name"/>
+                                    <field name="pos_config_ids" widget="many2many_tags" optional="show"/>
+                                    <field name="category_ids" widget="many2many_tags" optional="show"/>
+                                    <field name="stage_ids" widget="many2many_tags"/>
+                                    <field name="order_count" string="In Progress"/>
+                                    <field name="average_time" string="Avg Time (min)"/>
+                                    <button
+                                        name="open_readonly_ui"
+                                        type="object"
+                                        string="Open Read-Only"
+                                        icon="fa-eye"
+                                        class="btn-link"
+                                    />
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="pos_prep_screen_manager_view_list" model="ir.ui.view">
+        <field name="name">pos.prep.screen.manager.list</field>
+        <field name="model">pos.prep.screen.manager</field>
+        <field name="arch" type="xml">
+            <list string="Manager Preparation Screens">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="preparation_display_ids" widget="many2many_tags" placeholder="All Screens"/>
+                <field name="default_view_mode"/>
+                <field name="display_count"/>
+                <field name="total_order_count"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
+                <button
+                    name="open_manager_ui"
+                    type="object"
+                    string="Open Manager Screen"
+                    class="btn-primary"
+                />
+            </list>
+        </field>
+    </record>
+
+    <record id="pos_prep_screen_manager_view_kanban" model="ir.ui.view">
+        <field name="name">pos.prep.screen.manager.kanban</field>
+        <field name="model">pos.prep.screen.manager</field>
+        <field name="arch" type="xml">
+            <kanban class="o_pos_kanban">
+                <templates>
+                    <t t-name="menu">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-12" groups="point_of_sale.group_pos_manager">
+                                    <a type="open" class="dropdown-item">Configure</a>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-name="card">
+                        <div class="d-flex align-items-center justify-content-between ms-2 me-2">
+                            <field name="name" class="fw-bold fs-4"/>
+                            <span class="badge text-bg-info">Read-Only</span>
+                        </div>
+                        <div class="ms-2 mt-1">
+                            <field name="preparation_display_ids" widget="many2many_tags"/>
+                        </div>
+                        <div class="row pb-3 mt-4 align-items-center">
+                            <div class="col-12 col-sm-7 d-flex flex-row">
+                                <button class="btn btn-primary ms-2" name="open_manager_ui" type="object">
+                                    Manager Screen
+                                </button>
+                            </div>
+                            <div class="col-12 col-sm-5 mt-2 mt-sm-0">
+                                <div class="row g-0 text-end pe-2">
+                                    <div class="col-9 text-muted">
+                                        <span>Screens</span>
+                                    </div>
+                                    <div class="col-3 fw-bold">
+                                        <field name="display_count"/>
+                                    </div>
+                                </div>
+                                <div class="row g-0 text-end pe-2">
+                                    <div class="col-9 text-muted">
+                                        <span>In progress</span>
+                                    </div>
+                                    <div class="col-3 fw-bold">
+                                        <field name="total_order_count"/>
+                                    </div>
+                                </div>
+                                <div class="row g-0 text-end pe-2">
+                                    <div class="col-9 text-muted">
+                                        <span>Average time</span>
+                                    </div>
+                                    <div class="col-3 fw-bold">
+                                        <span><field name="average_time"/>'</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_pos_prep_screen_manager" model="ir.actions.act_window">
+        <field name="name">Manager Preparation Screens</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">pos.prep.screen.manager</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create a Read-Only Manager Preparation Screen
+            </p>
+            <p>
+                Combine as many preparation screens as you want into a single mobile-compatible, read-only supervision dashboard.
+            </p>
+        </field>
+    </record>
+
+    <menuitem
+        id="menu_pos_prep_screen_manager"
+        name="Manager Preparation Screen"
+        parent="point_of_sale.menu_point_of_sale"
+        action="action_pos_prep_screen_manager"
+        sequence="100"
+        groups="point_of_sale.group_pos_user"
+    />
+</odoo>
+

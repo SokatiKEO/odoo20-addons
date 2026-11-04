@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- POS Category Form View Inheritance -->
+    <record id="pos_category_view_form_inherit" model="ir.ui.view">
+        <field name="name">pos.category.form.inherit.timer.alert</field>
+        <field name="model">pos.category</field>
+        <field name="inherit_id" ref="point_of_sale.product_pos_category_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='parent_id']" position="after">
+                <field name="alert_timer"/>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- POS Category Tree/List View Inheritance -->
+    <record id="pos_category_view_tree_inherit" model="ir.ui.view">
+        <field name="name">pos.category.list.inherit.timer.alert</field>
+        <field name="model">pos.category</field>
+        <field name="inherit_id" ref="point_of_sale.product_pos_category_tree_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='parent_id']" position="after">
+                <field name="alert_timer" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

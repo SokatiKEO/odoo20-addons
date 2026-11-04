@@ -1,7 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
     <t t-name="pos_kitchen_display_screen.floor_screen_element" t-inherit="pos_restaurant.floor_screen_element" t-inherit-mode="extension">
+        <xpath expr="//div[contains(@t-attf-class, 'o_fp_table')]" position="attributes">
+            <attribute name="t-attf-class" add="{{ this.isTableLate(table || element.record) ? 'table-late-pulse' : '' }}" separator=" "/>
+        </xpath>
         <xpath expr="//div[hasclass('o_fp_table_number')]" position="before">
+            <!-- <div t-if="this.isTableLate(table || element.record)"
+                 t-att-style="tableContentStyle"
+                 class="table-late-timer-badge position-absolute top-0 start-0 d-flex align-items-center justify-content-center rounded-circle z-2 text-white bg-danger"
+                 title="Preparation Overdue">
+                <i class="oi oi-fw pulse-timer-icon" data-icon="schedule" aria-hidden="true"/>
+            </div> -->
             <t t-set="foodStages" t-value="this.getTableFoodStages(table)"/>
             <div t-if="foodStages.length"
                  class="table-food-stages d-flex gap-1 z-2"

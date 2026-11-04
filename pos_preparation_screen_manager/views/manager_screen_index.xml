@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="pos_preparation_screen_manager.manager_screen_index" name="POS Preparation Screen Manager Index">&lt;!DOCTYPE html&gt;
+<html t-att-data-theme="theme">
+    <head>
+        <meta charset="utf-8"/>
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"/>
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"/>
+        <meta name="apple-mobile-web-app-capable" content="yes"/>
+        <meta name="mobile-web-app-capable" content="yes"/>
+        <title><t t-out="manager_config['name']"/> - Read-Only</title>
+        <link rel="shortcut icon" href="/point_of_sale/static/src/img/favicon.ico" type="image/x-icon"/>
+        <link rel="stylesheet" href="/pos_preparation_screen_manager/static/src/manager/manager_screen.css"/>
+    </head>
+    <body t-attf-class="o_pdis_manager_body theme-{{ theme }}">
+        <div id="o_pdis_manager_app" class="o_pdis_manager_app">
+            <!-- Top Navigation Bar -->
+            <header class="o_pdis_mgr_header">
+                <div class="o_pdis_mgr_brand">
+                    <span class="o_pdis_mgr_title" t-out="manager_config['name']"/>
+                    <span class="o_pdis_mgr_badge" title="Read-Only Mode: Orders cannot be modified from this screen">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        <span>READ-ONLY</span>
+                    </span>
+                </div>
+
+                <!-- Dynamic Screen Tabs Bar -->
+                <nav id="mgr_tabs_nav" class="o_pdis_mgr_tabs" aria-label="Preparation Screens"/>
+
+                <!-- Right Controls -->
+                <div class="o_pdis_mgr_actions">
+                    <div class="o_pdis_mgr_view_switch" role="group" aria-label="View Mode">
+                        <button type="button" id="btn_mode_split" class="o_mgr_btn o_mgr_btn_seg" title="Split View: Show all screens at once">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+                            <span class="o_mgr_btn_label">Split</span>
+                        </button>
+                        <button type="button" id="btn_mode_tabs" class="o_mgr_btn o_mgr_btn_seg" title="Tabs View: Switch one screen at a time">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+                            <span class="o_mgr_btn_label">Tabs</span>
+                        </button>
+                    </div>
+
+                    <select id="select_grid_cols" class="o_mgr_select" title="Grid Columns in Split View">
+                        <option value="auto">Auto Cols</option>
+                        <option value="1">1 Col</option>
+                        <option value="2">2 Cols</option>
+                        <option value="3">3 Cols</option>
+                        <option value="4">4 Cols</option>
+                    </select>
+
+                    <button type="button" id="btn_open_screens_modal" class="o_mgr_btn o_mgr_btn_primary" title="Add or select preparation screens">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                        <span class="o_mgr_btn_label">Screens</span>
+                        <span id="badge_selected_count" class="o_mgr_count_pill">0</span>
+                    </button>
+
+                    <!-- <button type="button" id="btn_toggle_theme" class="o_mgr_btn o_mgr_btn_icon" title="Switch Light / Dark Mode">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                    </button> -->
+
+                    <button type="button" id="btn_refresh_all" class="o_mgr_btn o_mgr_btn_icon" title="Refresh All Screens">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                    </button>
+
+                    <button type="button" id="btn_exit_manager" class="o_mgr_btn o_mgr_btn_exit" title="Close Manager Screen">
+                        <span class="o_mgr_btn_label">Close</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Main Multi-Screen Content Area -->
+            <main id="mgr_screens_container" class="o_pdis_mgr_Viewport"/>
+
+            <!-- Screen Selector Modal -->
+            <div id="mgr_screens_modal" class="o_pdis_mgr_modal_backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="mgr_modal_title">
+                <div class="o_pdis_mgr_modal">
+                    <div class="o_pdis_mgr_modal_header">
+                        <div>
+                            <h3 id="mgr_modal_title" class="o_pdis_mgr_modal_title">Select Preparation Screens</h3>
+                            <p class="o_pdis_mgr_modal_subtitle">Choose as many preparation screens as you want to monitor in read-only mode.</p>
+                        </div>
+                        <button type="button" id="btn_close_modal" class="o_mgr_btn o_mgr_btn_icon" aria-label="Close">✕</button>
+                    </div>
+                    <div class="o_pdis_mgr_modal_toolbar">
+                        <button type="button" id="btn_select_all_screens" class="o_mgr_btn o_mgr_btn_sm">Select All</button>
+                        <button type="button" id="btn_clear_all_screens" class="o_mgr_btn o_mgr_btn_sm">Clear All</button>
+                    </div>
+                    <div id="mgr_screens_checklist" class="o_pdis_mgr_modal_body"/>
+                    <div class="o_pdis_mgr_modal_footer">
+                        <!-- <a href="/odoo/action-pos_enterprise.action_preparation_display" class="o_mgr_link">
+                            Manage Preparation Displays in Odoo →
+                        </a> -->
+                        <div class="o_pdis_mgr_modal_footer_btns">
+                              <button type="button" id="btn_cancel_modal" class="o_mgr_btn">Cancel</button>
+                            <button type="button" id="btn_apply_screens" class="o_mgr_btn o_mgr_btn_primary">Apply Screens</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script id="manager_config_data" type="application/json"><t t-out="manager_config_json"/></script>
+        <script type="text/javascript" src="/pos_preparation_screen_manager/static/src/manager/manager_screen.js"/>
+    </body>
+</html>
+    </template>
+</odoo>
