@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates id="template" xml:space="preserve">
     <t t-inherit="pos_enterprise.Orderline" t-inherit-mode="extension">
-        <xpath expr="//button[hasclass('o_pdis_preview_btn')]" position="before">
+        <xpath expr="//span[@title='Cashier']" position="after">
             <div
                 t-if="this.hasTimer"
-                class="o_pdis_line_timer_wrap ms-auto flex-shrink-0 d-inline-flex align-items-center"
+                class="o_pdis_line_timer_wrap ms-auto me-2 flex-shrink-0 d-inline-flex align-items-center"
                 t-att-class="{ 'o_pdis_line_alert_pulse': this.state.isAlert }"
                 t-att-title="this.state.isAlert ? 'Category alert timer exceeded' : 'Preparation timer'"
             >
