@@ -9,7 +9,7 @@
                     <button
                         name="open_manager_ui"
                         type="object"
-                        string="Open Manager Screen (Read-Only)"
+                        string="Open Manager Screen"
                         class="btn-primary"
                     />
                     <button
@@ -47,18 +47,18 @@
                             <field name="preparation_display_ids">
                                 <list string="Preparation Screens">
                                     <field name="name"/>
-                                    <field name="pos_config_ids" widget="many2many_tags" optional="show"/>
-                                    <field name="category_ids" widget="many2many_tags" optional="show"/>
+                                    <field name="pos_config_ids" widget="many2many_tags" />
+                                    <field name="category_ids" widget="many2many_tags" />
                                     <field name="stage_ids" widget="many2many_tags"/>
-                                    <field name="order_count" string="In Progress"/>
-                                    <field name="average_time" string="Avg Time (min)"/>
-                                    <button
-                                        name="open_readonly_ui"
-                                        type="object"
-                                        string="Open Read-Only"
-                                        icon="fa-eye"
-                                        class="btn-link"
-                                    />
+                                    <field name="order_count" string="In Progress" optional="hide"/>
+                                    <field name="average_time" string="Avg Time (min)" optional="hide"/>
+<!--                                    <button-->
+<!--                                        name="open_readonly_ui"-->
+<!--                                        type="object"-->
+<!--                                        string="Open Read-Only"-->
+<!--                                        icon="fa-eye"-->
+<!--                                        class="btn-link"-->
+<!--                                    />-->
                                 </list>
                             </field>
                         </page>
@@ -67,6 +67,7 @@
             </form>
         </field>
     </record>
+
 
     <record id="pos_prep_screen_manager_view_list" model="ir.ui.view">
         <field name="name">pos.prep.screen.manager.list</field>
@@ -144,6 +145,7 @@
                                         <span><field name="average_time"/>'</span>
                                     </div>
                                 </div>
+
                             </div>
                         </div>
                     </t>
@@ -153,7 +155,7 @@
     </record>
 
     <record id="action_pos_prep_screen_manager" model="ir.actions.act_window">
-        <field name="name">Manager Preparation Screens</field>
+        <field name="name">Preparation Display (Manager)</field>
         <field name="type">ir.actions.act_window</field>
         <field name="res_model">pos.prep.screen.manager</field>
         <field name="view_mode">kanban,list,form</field>
@@ -169,11 +171,10 @@
 
     <menuitem
         id="menu_pos_prep_screen_manager"
-        name="Manager Preparation Screen"
+        name="Preparation Display (Manager)"
         parent="point_of_sale.menu_point_of_sale"
         action="action_pos_prep_screen_manager"
         sequence="100"
         groups="point_of_sale.group_pos_user"
     />
 </odoo>
-

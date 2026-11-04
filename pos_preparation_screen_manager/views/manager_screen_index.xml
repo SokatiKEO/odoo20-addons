@@ -18,10 +18,10 @@
             <header class="o_pdis_mgr_header">
                 <div class="o_pdis_mgr_brand">
                     <span class="o_pdis_mgr_title" t-out="manager_config['name']"/>
-                    <span class="o_pdis_mgr_badge" title="Read-Only Mode: Orders cannot be modified from this screen">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                        <span>READ-ONLY</span>
-                    </span>
+<!--                    <span class="o_pdis_mgr_badge" title="Read-Only Mode: Orders cannot be modified from this screen">-->
+<!--                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>-->
+<!--                        <span>READ-ONLY</span>-->
+<!--                    </span>-->
                 </div>
 
                 <!-- Dynamic Screen Tabs Bar -->
@@ -47,7 +47,7 @@
                             <span class="o_mgr_btn_label">Tabs</span>
                         </button>
                     </div>
-                    
+
 
                     <button type="button" id="btn_open_screens_modal" class="o_mgr_btn o_mgr_btn_primary" title="Add or select preparation screens">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -73,6 +73,7 @@
             <!-- Main Multi-Screen Content Area -->
             <main id="mgr_screens_container" t-attf-class="o_pdis_mgr_Viewport mode-{{ manager_config.get('default_view_mode', 'split') }} cols-{{ manager_config.get('grid_columns', 'auto') }}"/>
 
+
             <!-- Screen Selector Modal -->
             <div id="mgr_screens_modal" class="o_pdis_mgr_modal_backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="mgr_modal_title">
                 <div class="o_pdis_mgr_modal">
@@ -84,8 +85,8 @@
                         <button type="button" id="btn_close_modal" class="o_mgr_btn o_mgr_btn_icon" aria-label="Close">✕</button>
                     </div>
                     <div class="o_pdis_mgr_modal_toolbar">
-                        <button type="button" id="btn_select_all_screens" class="o_mgr_btn o_mgr_btn_sm">Select All</button>
-                        <button type="button" id="btn_clear_all_screens" class="o_mgr_btn o_mgr_btn_sm">Clear All</button>
+<!--                        <button type="button" id="btn_select_all_screens" class="o_mgr_btn o_mgr_btn_sm">Select All</button>-->
+<!--                        <button type="button" id="btn_clear_all_screens" class="o_mgr_btn o_mgr_btn_sm">Clear All</button>-->
                     </div>
                     <div id="mgr_screens_checklist" class="o_pdis_mgr_modal_body"/>
                     <div class="o_pdis_mgr_modal_footer">
