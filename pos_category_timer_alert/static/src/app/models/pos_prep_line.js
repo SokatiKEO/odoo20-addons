@@ -51,12 +51,12 @@ patch(PosPrepLine.prototype, {
     },
 
     /**
-     * Indicates whether the line is completed (in last stage, marked done, or strike-through).
+     * Indicates whether the line is completed (only when in the last stage).
      *
-     * @returns {boolean} True if line preparation is finished.
+     * @returns {boolean} True if line has reached the last preparation stage.
      */
     get isCompleted() {
-        return Boolean(this.isLastStage || this.todo === false || (this.isStageDone && this.isStageDone()));
+        return Boolean(this.isLastStage);
     },
 
     /**
@@ -82,7 +82,7 @@ patch(PosPrepLine.prototype, {
                 const startSec = safeDurationSecondsSince(startTime);
                 const endSec = safeDurationSecondsSince(endTime);
                 const duration = Math.max(0, startSec - endSec);
-                if (duration > 0 || startSec > 0) {
+                if (duration > 0) {
                     this._frozenDurationSeconds = duration;
                     return duration;
                 }
