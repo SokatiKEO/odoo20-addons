@@ -174,3 +174,22 @@ class PosOrder(models.Model):
             if field not in fields:
                 fields.append(field)
         return fields
+
+    @api.model
+    def _check_pos_order(self, pos_config, order, device_type, table=None):
+        """Force the POS configuration's default preset on self-order orders when presets are enabled.
+
+        :param recordset pos_config: Active ``pos.config`` record.
+        :param dict order: Raw self-order payload from the client.
+        :param str device_type: Self-order device mode ('kiosk' or 'mobile').
+        :param recordset table: Optional ``restaurant.table`` record.
+        :return: Sanitized order dictionary for ``sync_from_ui``.
+        :rtype: dict
+        """
+        if pos_config.use_presets and pos_config.default_preset_id:
+            order["preset_id"] = pos_config.default_preset_id.id
+            if pos_config.default_preset_id not in pos_config.available_preset_ids:
+                pos_config.sudo().write({
+                    "available_preset_ids": [fields.Command.link(pos_config.default_preset_id.id)],
+                })
+        return super()._check_pos_order(pos_config, order, device_type, table=table)

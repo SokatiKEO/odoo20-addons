@@ -48,5 +48,38 @@ patch(SelfOrder.prototype, {
                 this.getUserDataFromServer();
             });
         }
+        if (this.config?.use_presets && this.config?.default_preset_id && this.currentOrder) {
+            this.currentOrder.setPreset(this.config.default_preset_id);
+        }
+    },
+
+    get availablePresets() {
+        if (this.config?.use_presets && this.config?.default_preset_id) {
+            return [this.config.default_preset_id];
+        }
+        return super.availablePresets;
+    },
+
+    hasPresets() {
+        if (this.config?.use_presets && this.config?.default_preset_id) {
+            return false;
+        }
+        return super.hasPresets(...arguments);
+    },
+
+    createNewOrder() {
+        const order = super.createNewOrder(...arguments);
+        if (this.config?.use_presets && this.config?.default_preset_id && order) {
+            order.setPreset(this.config.default_preset_id);
+        }
+        return order;
+    },
+
+    get currentOrder() {
+        const order = super.currentOrder;
+        if (order && this.config?.use_presets && this.config?.default_preset_id && !order.preset_id) {
+            order.setPreset(this.config.default_preset_id);
+        }
+        return order;
     },
 });
