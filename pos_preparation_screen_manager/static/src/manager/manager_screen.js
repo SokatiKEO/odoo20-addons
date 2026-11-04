@@ -55,10 +55,13 @@
     const allDisplaysMap = new Map(config.all_displays.map((d) => [d.id, d]));
 
     let selectedIds = resolveInitialSelectedIds();
-    let viewMode =
-        savedState.viewMode ||
-        (isMobileViewport ? "tabs" : config.default_view_mode || "split");
-    let gridColumns = savedState.gridColumns || config.grid_columns || "auto";
+    let viewMode = isMobileViewport
+        ? "tabs"
+        : config.default_view_mode || savedState.viewMode || "split";
+    if (viewMode !== "split" && viewMode !== "tabs") {
+        viewMode = "split";
+    }
+    let gridColumns = config.grid_columns || savedState.gridColumns || "auto";
     let activeTabId = selectedIds[0] || null;
     let draftSelectedIds = new Set(selectedIds);
 

@@ -10,7 +10,7 @@
         <meta name="mobile-web-app-capable" content="yes"/>
         <title><t t-out="manager_config['name']"/> - Read-Only</title>
         <link rel="shortcut icon" href="/point_of_sale/static/src/img/favicon.ico" type="image/x-icon"/>
-        <link rel="stylesheet" href="/pos_preparation_screen_manager/static/src/manager/manager_screen.css"/>
+        <link rel="stylesheet" href="/pos_preparation_screen_manager/static/src/manager/manager_screen.css?v=20261104_3"/>
     </head>
     <body t-attf-class="o_pdis_manager_body theme-{{ theme }}">
         <div id="o_pdis_manager_app" class="o_pdis_manager_app">
@@ -29,17 +29,6 @@
 
                 <!-- Right Controls -->
                 <div class="o_pdis_mgr_actions">
-                    <div class="o_pdis_mgr_view_switch" role="group" aria-label="View Mode">
-                        <button type="button" id="btn_mode_split" class="o_mgr_btn o_mgr_btn_seg" title="Split View: Show all screens at once">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
-                            <span class="o_mgr_btn_label">Split</span>
-                        </button>
-                        <button type="button" id="btn_mode_tabs" class="o_mgr_btn o_mgr_btn_seg" title="Tabs View: Switch one screen at a time">
-                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
-                            <span class="o_mgr_btn_label">Tabs</span>
-                        </button>
-                    </div>
-
                     <select id="select_grid_cols" class="o_mgr_select" title="Grid Columns in Split View">
                         <option value="auto">Auto Cols</option>
                         <option value="1">1 Col</option>
@@ -47,6 +36,18 @@
                         <option value="3">3 Cols</option>
                         <option value="4">4 Cols</option>
                     </select>
+                    <div class="o_pdis_mgr_view_switch" role="group" aria-label="View Mode">
+                        <button type="button" id="btn_mode_split" t-attf-class="o_mgr_btn o_mgr_btn_seg {{ 'active' if manager_config.get('default_view_mode', 'split') == 'split' else '' }}" title="Split View: Show all screens at once">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+                            <span class="o_mgr_btn_label">Split</span>
+                        </button>
+                        <button type="button" id="btn_mode_tabs" t-attf-class="o_mgr_btn o_mgr_btn_seg {{ 'active' if manager_config.get('default_view_mode') == 'tabs' else '' }}" title="Tabs View: Switch one screen at a time">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+                            <span class="o_mgr_btn_label">Tabs</span>
+                        </button>
+                    </div>
+
+                    
 
                     <button type="button" id="btn_open_screens_modal" class="o_mgr_btn o_mgr_btn_primary" title="Add or select preparation screens">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -62,15 +63,15 @@
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
                     </button>
 
-                    <button type="button" id="btn_exit_manager" class="o_mgr_btn o_mgr_btn_exit" title="Close Manager Screen">
+                    <a id="btn_exit_manager" t-att-href="manager_config.get('backend_url', '/odoo/action-pos_preparation_screen_manager.action_pos_prep_screen_manager')" class="o_mgr_btn o_mgr_btn_exit" style="text-decoration: none;" title="Close Manager Screen">
                         <span class="o_mgr_btn_label">Close</span>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-                    </button>
+                    </a>
                 </div>
             </header>
 
             <!-- Main Multi-Screen Content Area -->
-            <main id="mgr_screens_container" class="o_pdis_mgr_Viewport"/>
+            <main id="mgr_screens_container" t-attf-class="o_pdis_mgr_Viewport mode-{{ manager_config.get('default_view_mode', 'split') }} cols-{{ manager_config.get('grid_columns', 'auto') }}"/>
 
             <!-- Screen Selector Modal -->
             <div id="mgr_screens_modal" class="o_pdis_mgr_modal_backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="mgr_modal_title">
@@ -101,7 +102,7 @@
         </div>
 
         <script id="manager_config_data" type="application/json"><t t-out="manager_config_json"/></script>
-        <script type="text/javascript" src="/pos_preparation_screen_manager/static/src/manager/manager_screen.js"/>
+        <script type="text/javascript" src="/pos_preparation_screen_manager/static/src/manager/manager_screen.js?v=20261104_3"/>
     </body>
 </html>
     </template>
