@@ -4,5 +4,19 @@
         <xpath expr="//div[hasclass('o_pdis_tracker')]" position="attributes">
             <attribute name="style">max-width: 240px;</attribute>
         </xpath>
+        <xpath expr="//div[hasclass('o_pdis_order_card_footer')]" position="attributes">
+            <attribute name="t-if">o_pdis_last_stage || this.prepDisplay.prepPrinters.length || this.hasTickedLines</attribute>
+        </xpath>
+        <xpath expr="//div[hasclass('o_pdis_order_card_footer')]" position="inside">
+            <button
+                t-if="!o_pdis_last_stage and this.hasTickedLines"
+                class="btn btn-primary smaller flex-grow-1 fw-bolder rounded w-100 d-flex align-items-center justify-content-center gap-1"
+                type="button"
+                t-on-click.stop="this.moveTickedLinesToNextStage"
+            >
+                <span t-out="this.moveTickedButtonLabel"/>
+                <i class="fa fa-arrow-right ms-1" aria-hidden="true"/>
+            </button>
+        </xpath>
     </t>
 </templates>
