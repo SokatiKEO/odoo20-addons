@@ -52,8 +52,8 @@ class PosConfig(models.Model):
     )
     receipt_font_size = fields.Integer(
         string="Receipt Font Size (px)",
-        default=15,
-        help="Base font size in pixels for the receipt (default 15px).",
+        default=18,
+        help="Base font size in pixels for the receipt (default 18px).",
     )
 
     @api.depends("company_id.vat")
