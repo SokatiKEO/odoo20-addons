@@ -8,9 +8,10 @@
             <xpath expr="//div[hasclass('oe_title')]" position="inside">
                 <div class="mt-1">
                     <label for="khmer_name" string="Khmer Name" class="fw-semibold"/>
-                    <field name="khmer_name" placeholder="ឈ្មោះផលិតផលជាភាសាខ្មែរ (Khmer Name)"/>
+                    <field name="khmer_name"/>
                 </div>
             </xpath>
         </field>
     </record>
 </odoo>
+

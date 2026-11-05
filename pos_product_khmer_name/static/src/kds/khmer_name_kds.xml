@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <t t-inherit="pos_enterprise.Orderline" t-inherit-mode="extension">
+        <xpath expr="//div[hasclass('o_pdis_product-name')]" position="attributes">
+            <attribute name="t-out">this.displayProductName</attribute>
+        </xpath>
+    </t>
+</templates>
+

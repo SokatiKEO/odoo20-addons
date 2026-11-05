@@ -16,7 +16,6 @@ POS Category Alert Timer & Persistent Duration
     "depends": ["point_of_sale", "pos_enterprise", "pos_kitchen_display_screen"],
     "data": [
         "views/pos_category_views.xml",
-        "views/product_views.xml",
     ],
     "assets": {
         "pos_preparation_display.assets": [
