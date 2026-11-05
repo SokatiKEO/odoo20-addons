@@ -9,21 +9,36 @@ import { ComboConfiguratorPopup } from "@point_of_sale/app/components/popups/com
 import { PosOrderline } from "@point_of_sale/app/models/pos_order_line";
 import { PosOrder } from "@point_of_sale/app/models/pos_order";
 
+function formatPosKhmerName(product, config, fallbackName) {
+    const khmerName = product?.khmer_name || product?.product_tmpl_id?.khmer_name;
+    const defaultName =
+        fallbackName ??
+        product?.name ??
+        product?.product_tmpl_id?.name ??
+        product?.display_name ??
+        "";
+    if (!config?.khmer_name_apply_pos || !config?.khmer_name_display_mode || !khmerName) {
+        return null;
+    }
+    if (config.khmer_name_display_mode === "both") {
+        return defaultName && defaultName !== khmerName
+            ? `${khmerName} / ${defaultName}`
+            : khmerName;
+    }
+    return khmerName;
+}
+
 patch(ProductTemplate.prototype, {
     get displayKhmerOrName() {
         const config = this.config || this.models?.["pos.config"]?.getFirst();
-        if (config?.show_khmer_name && this.khmer_name) {
-            return this.khmer_name;
-        }
-        return this.name;
+        return formatPosKhmerName(this, config, this.name) || this.name;
     },
 
     get displayName() {
         const config = this.config || this.models?.["pos.config"]?.getFirst();
-        if (config?.show_khmer_name && this.khmer_name) {
-            return this.default_code
-                ? `[${this.default_code}] ${this.khmer_name}`
-                : this.khmer_name;
+        const formatted = formatPosKhmerName(this, config, this.display_name);
+        if (formatted) {
+            return this.default_code ? `[${this.default_code}] ${formatted}` : formatted;
         }
         return super.displayName;
     },
@@ -43,11 +58,8 @@ patch(ProductTemplate.prototype, {
 patch(ProductProduct.prototype, {
     get displayKhmerOrName() {
         const config = this.config || this.models?.["pos.config"]?.getFirst();
-        const khmerName = this.khmer_name || this.product_tmpl_id?.khmer_name;
-        if (config?.show_khmer_name && khmerName) {
-            return khmerName;
-        }
-        return this.name || this.product_tmpl_id?.name || this.display_name;
+        const defaultName = this.name || this.product_tmpl_id?.name || this.display_name;
+        return formatPosKhmerName(this, config, defaultName) || defaultName;
     },
 
     get searchString() {
@@ -65,11 +77,8 @@ patch(ProductProduct.prototype, {
 
 patch(ProductScreen.prototype, {
     getProductName(product) {
-        const khmerName = product?.khmer_name || product?.product_tmpl_id?.khmer_name;
-        if (this.pos?.config?.show_khmer_name && khmerName) {
-            return khmerName;
-        }
-        return super.getProductName(product);
+        const defaultName = super.getProductName(product);
+        return formatPosKhmerName(product, this.pos?.config, defaultName) || defaultName;
     },
 });
 
@@ -77,14 +86,16 @@ patch(ProductCard.prototype, {
     get displayProductName() {
         const product = this.props.product;
         const config = product?.config || product?.models?.["pos.config"]?.getFirst();
-        const khmerName = product?.khmer_name || product?.product_tmpl_id?.khmer_name;
-        if (config?.show_khmer_name && khmerName) {
+        const baseDefaultName =
+            product?.name || product?.product_tmpl_id?.name || this.props.name;
+        const formatted = formatPosKhmerName(product, config, baseDefaultName);
+        if (formatted) {
             const attributes = product?.product_template_variant_value_ids
                 ?.map((attr) => attr.name)
                 .join(", ");
             return attributes && this.props.isComboPopup
-                ? `${khmerName} (${attributes})`
-                : khmerName;
+                ? `${formatted} (${attributes})`
+                : formatted;
         }
         return this.props.name;
     },
@@ -92,12 +103,14 @@ patch(ProductCard.prototype, {
 
 patch(ComboConfiguratorPopup.prototype, {
     get title() {
-        if (!this.props.title && this.pos?.config?.show_khmer_name) {
-            const khmerName =
-                this.props.productTemplate?.khmer_name ||
-                this.props.productTemplate?.product_tmpl_id?.khmer_name;
-            if (khmerName) {
-                return khmerName;
+        if (!this.props.title) {
+            const formatted = formatPosKhmerName(
+                this.props.productTemplate,
+                this.pos?.config,
+                this.props.productTemplate?.display_name
+            );
+            if (formatted) {
+                return formatted;
             }
         }
         return super.title;
@@ -107,34 +120,43 @@ patch(ComboConfiguratorPopup.prototype, {
 patch(PosOrderline.prototype, {
     setFullProductName() {
         super.setFullProductName();
-        const khmerName =
-            this.product_id?.khmer_name || this.product_id?.product_tmpl_id?.khmer_name;
-        if (this.config?.show_khmer_name && khmerName) {
+        const formatted = formatPosKhmerName(
+            this.product_id,
+            this.config,
+            this.product_id?.name
+        );
+        if (formatted) {
             const attributeString = constructAttributeString(this);
             this.full_product_name = attributeString
-                ? `${khmerName} (${attributeString})`
-                : khmerName;
+                ? `${formatted} (${attributeString})`
+                : formatted;
         }
     },
 
     getFullProductName() {
-        const khmerName =
-            this.product_id?.khmer_name || this.product_id?.product_tmpl_id?.khmer_name;
-        if (this.config?.show_khmer_name && khmerName) {
+        const formatted = formatPosKhmerName(
+            this.product_id,
+            this.config,
+            this.product_id?.name
+        );
+        if (formatted) {
             const attributeString = constructAttributeString(this);
-            return attributeString ? `${khmerName} (${attributeString})` : khmerName;
+            return attributeString ? `${formatted} (${attributeString})` : formatted;
         }
         return super.getFullProductName();
     },
 
     get orderDisplayProductName() {
         const res = super.orderDisplayProductName;
-        const khmerName =
-            this.product_id?.khmer_name || this.product_id?.product_tmpl_id?.khmer_name;
-        if (this.config?.show_khmer_name && khmerName) {
+        const formatted = formatPosKhmerName(
+            this.product_id,
+            this.config,
+            this.product_id?.name
+        );
+        if (formatted) {
             return {
                 ...res,
-                name: khmerName,
+                name: formatted,
             };
         }
         return res;
@@ -144,12 +166,14 @@ patch(PosOrderline.prototype, {
 patch(PosOrder.prototype, {
     dataMaker(line, curr = {}) {
         const res = super.dataMaker(line, curr);
-        const khmerName =
-            line?.product_id?.khmer_name || line?.product_id?.product_tmpl_id?.khmer_name;
-        if (this.config?.show_khmer_name && khmerName && res?.data) {
-            res.data.basic_name = khmerName;
+        const formatted = formatPosKhmerName(
+            line?.product_id,
+            this.config,
+            line?.product_id?.name
+        );
+        if (formatted && res?.data) {
+            res.data.basic_name = formatted;
         }
         return res;
     },
 });
-

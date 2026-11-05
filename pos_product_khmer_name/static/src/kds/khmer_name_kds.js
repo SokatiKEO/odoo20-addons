@@ -3,25 +3,35 @@ import { Orderline } from "@pos_enterprise/app/components/orderline/orderline";
 import { Category } from "@pos_enterprise/app/components/category/category";
 import { ProductImageDialog } from "@pos_kitchen_display_screen/app/components/product_image_dialog/product_image_dialog";
 
+function formatKdsKhmerName(khmerName, defaultName, config) {
+    if (!config?.khmer_name_apply_kitchen || !config?.khmer_name_display_mode || !khmerName) {
+        return defaultName;
+    }
+    if (config.khmer_name_display_mode === "both") {
+        return defaultName && defaultName !== khmerName
+            ? `${khmerName} / ${defaultName}`
+            : khmerName;
+    }
+    return khmerName;
+}
+
 patch(Orderline.prototype, {
     get displayProductName() {
         const product = this.preparation_line?.product_id;
         if (!product) {
             return "";
         }
-        const config = this.preparation_line?.prep_order_id?.pos_order_id?.config_id;
-        const useKhmer = config
-            ? Boolean(config.show_khmer_name)
-            : Boolean(this.prepDisplay?.data?.models?.["pos.config"]?.some((c) => c.show_khmer_name));
-        if (useKhmer && product.khmer_name) {
-            return product.khmer_name;
-        }
-        return (
+        const config =
+            this.preparation_line?.prep_order_id?.pos_order_id?.config_id ||
+            this.prepDisplay?.data?.models?.["pos.config"]?.find(
+                (c) => c.khmer_name_apply_kitchen && c.khmer_name_display_mode
+            );
+        const defaultName =
             (config?.module_pos_restaurant ? product.name : product.display_name) ||
             product.name ||
             product.display_name ||
-            ""
-        );
+            "";
+        return formatKdsKhmerName(product.khmer_name, defaultName, config);
     },
 
     previewImage() {
@@ -44,19 +54,22 @@ patch(Orderline.prototype, {
 patch(Category.prototype, {
     get shouldShowCategory() {
         const length = super.shouldShowCategory;
-        const useKhmer = Boolean(
-            this.prepDisplay?.data?.models?.["pos.config"]?.some((c) => c.show_khmer_name)
+        const activeConfig = this.prepDisplay?.data?.models?.["pos.config"]?.find(
+            (c) => c.khmer_name_apply_kitchen && c.khmer_name_display_mode
         );
-        if (useKhmer && this.products?.length) {
+        if (activeConfig && this.products?.length) {
             const productModel = this.prepDisplay?.data?.models?.["product.product"];
             for (const item of this.products) {
                 const prodRecord = productModel?.get(item.id);
                 if (prodRecord?.khmer_name) {
-                    item.name = prodRecord.khmer_name;
+                    item.name = formatKdsKhmerName(
+                        prodRecord.khmer_name,
+                        item.name,
+                        activeConfig
+                    );
                 }
             }
         }
         return length;
     },
 });
-

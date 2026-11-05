@@ -7,9 +7,28 @@
         <field name="arch" type="xml">
             <xpath expr="//block[@id='pos_interface_section']" position="inside">
                 <setting id="pos_show_khmer_name_setting"
-                         string="Show Product Khmer Name"
-                         help="Display the product's Khmer Name (if set) instead of its default name in POS, Kitchen Display, and Customer Self-Order.">
-                    <field name="pos_show_khmer_name"/>
+                         string="Product Khmer Name"
+                         help="Configure how product Khmer names are displayed and select which interfaces they apply to.">
+                    <div class="content-group mt16">
+                        <div class="mb-2">
+                            <field name="pos_khmer_name_display_mode" class="w-100"/>
+                        </div>
+                        <div class="mt-2" invisible="not pos_khmer_name_display_mode">
+                            <div class="fw-semibold mb-1">Apply to</div>
+                            <div>
+                                <field name="pos_khmer_name_apply_pos"/>
+                                <label for="pos_khmer_name_apply_pos" string="POS" class="fw-normal me-3"/>
+                            </div>
+                            <div>
+                                <field name="pos_khmer_name_apply_self_order"/>
+                                <label for="pos_khmer_name_apply_self_order" string="Self Order" class="fw-normal me-3"/>
+                            </div>
+                            <div>
+                                <field name="pos_khmer_name_apply_kitchen"/>
+                                <label for="pos_khmer_name_apply_kitchen" string="Kitchen" class="fw-normal"/>
+                            </div>
+                        </div>
+                    </div>
                 </setting>
             </xpath>
         </field>
@@ -22,12 +41,30 @@
         <field name="arch" type="xml">
             <xpath expr="//page[@name='configuration']//div[hasclass('o_settings_container')]" position="inside">
                 <setting id="show_khmer_name_config_setting"
-                         string="Show Product Khmer Name"
-                         help="Display the product's Khmer Name (if set) instead of its default name in POS, Kitchen Display, and Customer Self-Order.">
-                    <field name="show_khmer_name"/>
+                         string="Product Khmer Name"
+                         help="Configure how product Khmer names are displayed and select which interfaces they apply to.">
+                    <div class="content-group mt16">
+                        <div class="mb-2">
+                            <field name="khmer_name_display_mode" class="w-100"/>
+                        </div>
+                        <div class="mt-2" invisible="not khmer_name_display_mode">
+                            <div class="fw-semibold mb-1">Apply to</div>
+                            <div>
+                                <field name="khmer_name_apply_pos"/>
+                                <label for="khmer_name_apply_pos" string="POS" class="fw-normal me-3"/>
+                            </div>
+                            <div>
+                                <field name="khmer_name_apply_self_order"/>
+                                <label for="khmer_name_apply_self_order" string="Self Order" class="fw-normal me-3"/>
+                            </div>
+                            <div>
+                                <field name="khmer_name_apply_kitchen"/>
+                                <label for="khmer_name_apply_kitchen" string="Kitchen" class="fw-normal"/>
+                            </div>
+                        </div>
+                    </div>
                 </setting>
             </xpath>
         </field>
     </record>
 </odoo>
-
