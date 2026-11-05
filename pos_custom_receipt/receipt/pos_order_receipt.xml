@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="pos_custom_receipt.pos_order_receipt_style" inherit_id="point_of_sale.pos_order_receipt_style">
+            <xpath expr="//style" position="inside">
+                #pos-receipt .ym-receipt {
+                    font-family: "Khmer OS Battambang", "Khmer OS System", "Noto Sans Khmer", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
+                    color: #000 !important;
+                    line-height: 1.4 !important;
+                    background-color: #fff !important;
+                    padding: 6px 4px !important;
+                }
+                #pos-receipt .ym-khmer-company-name {
+                    font-family: "Khmer OS Muol Light", "Khmer OS Muol", "Noto Serif Khmer", serif !important;
+                    font-size: 1.35em !important;
+                    font-weight: 700 !important;
+                    line-height: 1.45 !important;
+                    margin-bottom: 2px !important;
+                }
+                #pos-receipt .ym-company-name {
+                    font-family: Georgia, "Times New Roman", serif !important;
+                    font-size: 1.25em !important;
+                    font-weight: 700 !important;
+                    letter-spacing: 0.5px !important;
+                    margin-bottom: 4px !important;
+                }
+                #pos-receipt .ym-header-line {
+                    font-size: 0.92em !important;
+                    line-height: 1.35 !important;
+                }
+                #pos-receipt .ym-invoice-title {
+                    margin: 8px 0 6px 0 !important;
+                    text-align: center !important;
+                }
+                #pos-receipt .ym-invoice-title-kh {
+                    font-family: "Khmer OS Muol Light", "Khmer OS Muol", "Noto Serif Khmer", serif !important;
+                    font-size: 1.15em !important;
+                    font-weight: 700 !important;
+                    line-height: 1.4 !important;
+                }
+                #pos-receipt .ym-invoice-title-en {
+                    font-size: 1.12em !important;
+                    font-weight: 700 !important;
+                    line-height: 1.25 !important;
+                }
+                #pos-receipt .ym-meta-table {
+                    width: 100% !important;
+                    border-collapse: collapse !important;
+                    margin-bottom: 6px !important;
+                }
+                #pos-receipt .ym-meta-table td {
+                    padding: 1px 0 !important;
+                    font-size: 0.95em !important;
+                    vertical-align: baseline !important;
+                }
+                #pos-receipt .ym-meta-label {
+                    width: 48% !important;
+                    text-align: left !important;
+                    white-space: nowrap !important;
+                }
+                #pos-receipt .ym-meta-colon {
+                    width: 4% !important;
+                    text-align: center !important;
+                }
+                #pos-receipt .ym-meta-val {
+                    width: 48% !important;
+                    text-align: right !important;
+                }
+                #pos-receipt .ym-items-table {
+                    width: 100% !important;
+                    border-collapse: collapse !important;
+                    margin: 4px 0 !important;
+                    border-top: 1.5px solid #000 !important;
+                    border-bottom: 1.5px solid #000 !important;
+                }
+                #pos-receipt .ym-items-table thead tr {
+                    border-bottom: 1px solid #000 !important;
+                }
+                #pos-receipt .ym-items-table th {
+                    font-size: 0.92em !important;
+                    font-weight: 700 !important;
+                    padding: 4px 2px !important;
+                    line-height: 1.25 !important;
+                    vertical-align: middle !important;
+                }
+                #pos-receipt .ym-items-table td {
+                    font-size: 0.94em !important;
+                    padding: 4px 2px !important;
+                    vertical-align: top !important;
+                }
+                #pos-receipt .ym-line-sub {
+                    font-size: 0.85em !important;
+                    color: #333 !important;
+                }
+                #pos-receipt .ym-totals-table {
+                    width: 100% !important;
+                    border-collapse: collapse !important;
+                    margin-top: 4px !important;
+                }
+                #pos-receipt .ym-totals-table td {
+                    padding: 2px 0 !important;
+                    font-size: 0.95em !important;
+                    vertical-align: baseline !important;
+                }
+                #pos-receipt .ym-totals-label {
+                    text-align: left !important;
+                }
+                #pos-receipt .ym-totals-colon {
+                    width: 14px !important;
+                    text-align: center !important;
+                }
+                #pos-receipt .ym-totals-val {
+                    text-align: right !important;
+                    font-weight: 700 !important;
+                    white-space: nowrap !important;
+                }
+                #pos-receipt .ym-underlined {
+                    text-decoration: underline !important;
+                    font-weight: 800 !important;
+                }
+                #pos-receipt .ym-exchange-line {
+                    font-size: 0.95em !important;
+                    margin-top: 3px !important;
+                    text-align: left !important;
+                }
+                #pos-receipt .ym-waiting-wrap {
+                    display: flex !important;
+                    justify-content: center !important;
+                    align-items: center !important;
+                    gap: 10px !important;
+                    margin: 14px 0 10px 0 !important;
+                }
+                #pos-receipt .ym-waiting-labels {
+                    text-align: center !important;
+                    font-weight: 700 !important;
+                    line-height: 1.25 !important;
+                    font-size: 0.98em !important;
+                }
+                #pos-receipt .ym-waiting-value {
+                    font-size: 2.1em !important;
+                    font-weight: 800 !important;
+                    line-height: 1 !important;
+                }
+                #pos-receipt .ym-footer {
+                    text-align: center !important;
+                    margin-top: 8px !important;
+                    font-size: 0.95em !important;
+                    line-height: 1.45 !important;
+                }
+            </xpath>
+        </template>
+
+        <template id="pos_custom_receipt.pos_order_receipt" inherit_id="point_of_sale.pos_order_receipt">
+            <xpath expr="//html[@id='pos-receipt']/div[1]" position="replace">
+                <t t-set="custom" t-value="extra_data['custom_receipt']"/>
+                <div class="pos-receipt ym-receipt" t-attf-style="font-size: {{custom['font_size']}}px;">
+                    <!-- Header: Khmer Company Name on top, English Company Name below, VAT TIN, Address, Tell -->
+                    <div class="text-center">
+                        <div t-if="custom['khmer_company_name']" class="ym-khmer-company-name" t-out="custom['khmer_company_name']"/>
+                        <div t-if="custom['company_name']" class="ym-company-name" t-out="custom['company_name']"/>
+                        <div t-if="custom['vat_tin']" class="ym-header-line">លេខអតប : <t t-out="custom['vat_tin']"/></div>
+                        <div t-if="custom['address']" class="ym-header-line" t-out="custom['address']"/>
+                        <div t-if="custom['phone']" class="ym-header-line">Tel : <t t-out="custom['phone']"/></div>
+                    </div>
+
+                    <!-- Invoice Title -->
+                    <div class="ym-invoice-title">
+                        <div class="ym-invoice-title-kh">វិក្កយបត្រ</div>
+                        <div class="ym-invoice-title-en">Commercial Invoice</div>
+                    </div>
+
+                    <!-- Bilingual Order Metadata -->
+                    <table class="ym-meta-table">
+                        <tbody>
+                            <tr>
+                                <td class="ym-meta-label">លេខវិក្កយបត្រ / Invoice Nº</td>
+                                <td class="ym-meta-colon">:</td>
+                                <td class="ym-meta-val" t-out="custom['inv_no']"/>
+                            </tr>
+                            <tr>
+                                <td class="ym-meta-label">កាលបរិច្ឆេទ / Date &amp; Time</td>
+                                <td class="ym-meta-colon">:</td>
+                                <td class="ym-meta-val" t-out="custom['date']"/>
+                            </tr>
+                            <tr>
+                                <td class="ym-meta-label">បេឡាករ / Cashier</td>
+                                <td class="ym-meta-colon">:</td>
+                                <td class="ym-meta-val" t-out="custom['cashier_name']"/>
+                            </tr>
+                            <tr>
+                                <td class="ym-meta-label">អតិថិជន / Customer</td>
+                                <td class="ym-meta-colon">:</td>
+                                <td class="ym-meta-val" t-out="custom['customer_name']"/>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- 6-Column Bilingual Item Table -->
+                    <table class="ym-items-table">
+                        <thead>
+                            <tr>
+                                <th class="text-start" style="width: 9%;">
+                                    <div>ល.រ</div>
+                                    <div>Nº</div>
+                                </th>
+                                <th class="text-center" style="width: 37%;">
+                                    <div>បរិយាយ</div>
+                                    <div>Description</div>
+                                </th>
+                                <th class="text-center" style="width: 11%;">
+                                    <div>ចំនួន</div>
+                                    <div>Qty</div>
+                                </th>
+                                <th class="text-center" style="width: 14%;">
+                                    <div>តម្លៃ</div>
+                                    <div>Price</div>
+                                </th>
+                                <th class="text-center" style="width: 14%;">
+                                    <div>បញ្ចុះតម្លៃ</div>
+                                    <div>Discount</div>
+                                </th>
+                                <th class="text-end" style="width: 15%;">
+                                    <div>សរុប</div>
+                                    <div>Amount</div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="custom['orderlines']" t-as="line">
+                                <tr>
+                                    <td class="text-center" t-out="line['index']"/>
+                                    <td class="text-start">
+                                        <div class="text-break" t-out="line['product_name']"/>
+                                        <div t-if="line['customer_note']" class="ym-line-sub text-italic">
+                                            Note: <t t-out="line['customer_note']"/>
+                                        </div>
+                                        <t t-foreach="line['pack_lot_lines']" t-as="lot">
+                                            <div class="ym-line-sub" t-out="lot"/>
+                                        </t>
+                                    </td>
+                                    <td class="text-center" t-out="line['formatted_qty']"/>
+                                    <td class="text-center" t-out="line['formatted_unit_price']"/>
+                                    <td class="text-center" t-out="line['discount_str']"/>
+                                    <td class="text-end" t-out="line['formatted_price']"/>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+
+                    <!-- Full-Width Bilingual Totals & Payments -->
+                    <table class="ym-totals-table" t-if="not conditions['basic_receipt']">
+                        <tbody>
+                            <tr>
+                                <td class="ym-totals-label">សរុបរង / Subtotal</td>
+                                <td class="ym-totals-colon">:</td>
+                                <td class="ym-totals-val"><span class="ym-underlined" t-out="custom['subtotal']"/></td>
+                            </tr>
+                            <tr>
+                                <td class="ym-totals-label">
+                                    បញ្ចុះតម្លៃ / Discount
+                                    <strong t-if="custom['discount_pct_label']"> : <t t-out="custom['discount_pct_label']"/></strong>
+                                </td>
+                                <td class="ym-totals-colon">:</td>
+                                <td class="ym-totals-val"><span class="ym-underlined" t-out="custom['discount']"/></td>
+                            </tr>
+                            <tr>
+                                <td class="ym-totals-label">សរុប(រួមទាំងអាករ)ជារៀល (Grand total) (R)</td>
+                                <td class="ym-totals-colon">:</td>
+                                <td class="ym-totals-val"><span class="ym-underlined" t-out="custom['grand_total_khr']"/></td>
+                            </tr>
+                            <tr>
+                                <td class="ym-totals-label">សរុប(រួមទាំងអាករ)ជាដុល្លារ (Grand total) ($)</td>
+                                <td class="ym-totals-colon">:</td>
+                                <td class="ym-totals-val"><span class="ym-underlined" t-out="custom['grand_total_usd']"/></td>
+                            </tr>
+                            <t t-foreach="custom['payment_lines']" t-as="pline">
+                                <tr>
+                                    <td class="ym-totals-label">វិធីសាស្ត្របង់ប្រាក់ / Payment Method&#160;&#160;<t t-out="pline['name']"/></td>
+                                    <td class="ym-totals-colon">:</td>
+                                    <td class="ym-totals-val" t-out="pline['amount_formatted']"/>
+                                </tr>
+                            </t>
+                            <tr t-if="custom['show_change']">
+                                <td class="ym-totals-label">ប្រាក់អាប់ / Change</td>
+                                <td class="ym-totals-colon">:</td>
+                                <td class="ym-totals-val">
+                                    <t t-out="custom['change_usd_formatted']"/> (<t t-out="custom['change_khr']"/>)
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <!-- Exchange Rate -->
+                    <div class="ym-exchange-line" t-if="not conditions['basic_receipt']">
+                        អត្រាប្តូរប្រាក់ / Exchange Rate 1USD = <t t-out="custom['khr_rate']"/>
+                    </div>
+
+                    <!-- Waiting Number -->
+                    <div t-if="custom['waiting_number']" class="ym-waiting-wrap">
+                        <div class="ym-waiting-labels">
+                            <div>លេខរង់ចាំ</div>
+                            <div>Waiting Number</div>
+                        </div>
+                        <div class="ym-waiting-value" t-out="custom['waiting_number']"/>
+                    </div>
+
+                    <!-- Bilingual Footer Notes -->
+                    <div class="ym-footer">
+                        <div t-if="custom['footer_khmer_note']" t-out="custom['footer_khmer_note']"/>
+                        <div t-if="custom['footer_note']" t-out="custom['footer_note']"/>
+                    </div>
+
+                    <!-- Terminal Receipts -->
+                    <div class="after-footer">
+                        <t t-foreach="custom['payment_lines']" t-as="pline">
+                            <t t-if="pline['ticket']">
+                                <br/>
+                                <div class="pos-payment-terminal-receipt">
+                                    <pre t-out="pline['ticket']"/>
+                                </div>
+                            </t>
+                        </t>
+                    </div>
+                </div>
+            </xpath>
+        </template>
+    </data>
+</odoo>

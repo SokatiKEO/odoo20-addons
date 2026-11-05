@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="pos_config_view_form_inherit_custom_receipt" model="ir.ui.view">
+        <field name="name">pos.config.form.inherit.custom.receipt</field>
+        <field name="model">pos.config</field>
+        <field name="inherit_id" ref="point_of_sale.pos_config_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[hasclass('o_settings_container')][last()]" position="after">
+                <div class="div_pos_custom_receipt_settings" invisible="context.get('pos_config_create_mode', False)">
+                    <h2 class="mt32">Custom Receipt Configuration</h2>
+                    <div class="row mt16 o_settings_container" id="pos_custom_receipt_layout_settings">
+                        <setting string="Company &amp; Header Information" help="Company branding and contact details displayed at the top of the receipt.">
+                            <div class="content-group mt8">
+                                <div class="row mb-2">
+                                    <label for="receipt_header_khmer_company_name" string="Khmer Company Name" class="col-lg-4 o_light_label"/>
+                                    <field name="receipt_header_khmer_company_name" class="col-lg-8"/>
+                                </div>
+                                <div class="row mb-2">
+                                    <label for="receipt_header_company_name" string="Company Name" class="col-lg-4 o_light_label"/>
+                                    <field name="receipt_header_company_name" class="col-lg-8"/>
+                                </div>
+                                <div class="row mb-2">
+                                    <label for="receipt_vat_tin" string="VAT TIN" class="col-lg-4 o_light_label"/>
+                                    <field name="receipt_vat_tin" class="col-lg-8"/>
+                                </div>
+                                <div class="row mb-2">
+                                    <label for="receipt_phone" string="Phone" class="col-lg-4 o_light_label"/>
+                                    <field name="receipt_phone" class="col-lg-8"/>
+                                </div>
+                                <div class="row">
+                                    <label for="receipt_address" string="Address" class="col-lg-4 o_light_label"/>
+                                    <field name="receipt_address" class="col-lg-8"/>
+                                </div>
+                            </div>
+                        </setting>
+
+                        <setting string="Format, Currency &amp; Footer" help="Configure exchange rate, typography, and bilingual closing messages.">
+                            <div class="content-group mt8">
+                                <div class="row mb-2">
+                                    <label for="khr_exchange_rate" string="KHR Exchange Rate" class="col-lg-4 o_light_label"/>
+                                    <field name="khr_exchange_rate" class="col-lg-8"/>
+                                </div>
+                                <div class="row mb-2">
+                                    <label for="receipt_font_size" string="Font Size (px)" class="col-lg-4 o_light_label"/>
+                                    <field name="receipt_font_size" class="col-lg-8"/>
+                                </div>
+                                <div class="row mb-2">
+                                    <label for="receipt_footer_khmer_note" string="Khmer Footer Note" class="col-lg-4 o_light_label"/>
+                                    <field name="receipt_footer_khmer_note" class="col-lg-8"/>
+                                </div>
+                                <div class="row">
+                                    <label for="receipt_footer_note" string="English Footer Note" class="col-lg-4 o_light_label"/>
+                                    <field name="receipt_footer_note" class="col-lg-8"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo>

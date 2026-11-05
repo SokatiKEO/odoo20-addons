@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_inherit_custom_receipt" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.pos.custom.receipt</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="point_of_sale.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='point_of_sale']//div[@invisible='not pos_config_id']" position="inside">
+                <block title="Custom Order Receipt" id="pos_custom_receipt_section">
+                    <setting string="Company &amp; Header Information" help="Company branding and contact details displayed at the top of the receipt.">
+                        <div class="content-group mt8">
+                            <div class="row mb-2">
+                                <label for="pos_receipt_header_khmer_company_name" string="Khmer Company Name" class="col-lg-4 o_light_label"/>
+                                <field name="pos_receipt_header_khmer_company_name" class="col-lg-8" placeholder="e.g. យូ&amp; មី ខហ្វហ្វី ឯ .ក"/>
+                            </div>
+                            <div class="row mb-2">
+                                <label for="pos_receipt_header_company_name" string="Company Name" class="col-lg-4 o_light_label"/>
+                                <field name="pos_receipt_header_company_name" class="col-lg-8" placeholder="e.g. YOU &amp; ME COFFEE CO., LTD"/>
+                            </div>
+                            <div class="row mb-2">
+                                <label for="pos_receipt_vat_tin" string="VAT TIN" class="col-lg-4 o_light_label"/>
+                                <field name="pos_receipt_vat_tin" class="col-lg-8"/>
+                            </div>
+                            <div class="row mb-2">
+                                <label for="pos_receipt_phone" string="Phone" class="col-lg-4 o_light_label"/>
+                                <field name="pos_receipt_phone" class="col-lg-8"/>
+                            </div>
+                            <div class="row">
+                                <label for="pos_receipt_address" string="Address" class="col-lg-4 o_light_label"/>
+                                <field name="pos_receipt_address" class="col-lg-8"/>
+                            </div>
+                        </div>
+                    </setting>
+
+                    <setting string="Format, Currency &amp; Footer" help="Configure exchange rate, typography, and bilingual closing messages.">
+                        <div class="content-group mt8">
+                            <div class="row mb-2">
+                                <label for="pos_khr_exchange_rate" string="KHR Exchange Rate" class="col-lg-4 o_light_label"/>
+                                <field name="pos_khr_exchange_rate" class="col-lg-8"/>
+                            </div>
+                            <div class="row mb-2">
+                                <label for="pos_receipt_font_size" string="Font Size (px)" class="col-lg-4 o_light_label"/>
+                                <field name="pos_receipt_font_size" class="col-lg-8"/>
+                            </div>
+                            <div class="row mb-2">
+                                <label for="pos_receipt_footer_khmer_note" string="Khmer Footer Note" class="col-lg-4 o_light_label"/>
+                                <field name="pos_receipt_footer_khmer_note" class="col-lg-8"/>
+                            </div>
+                            <div class="row">
+                                <label for="pos_receipt_footer_note" string="English Footer Note" class="col-lg-4 o_light_label"/>
+                                <field name="pos_receipt_footer_note" class="col-lg-8"/>
+                            </div>
+                        </div>
+                    </setting>
+                </block>
+            </xpath>
+        </field>
+    </record>
+</odoo>
