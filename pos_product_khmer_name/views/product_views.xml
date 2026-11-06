@@ -4,6 +4,7 @@
         <field name="name">product.template.form.inherit.khmer.name</field>
         <field name="model">product.template</field>
         <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="priority">25</field>
         <field name="arch" type="xml">
             <xpath expr="//div[hasclass('oe_title')]" position="inside">
                 <div class="mt-1">
@@ -14,4 +15,3 @@
         </field>
     </record>
 </odoo>
-

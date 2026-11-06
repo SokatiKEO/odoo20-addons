@@ -11,7 +11,7 @@ POS Category Alert Timer & Persistent Duration
 - Highlights individual overdue items in the kitchen view when their preparation exceeds their category timer.
 - Order card enters alert state if any active line has breached its category preparation threshold.
 """,
-    "author": "Custom",
+    "author": "SMG",
     "license": "LGPL-3",
     "depends": ["point_of_sale", "pos_enterprise", "pos_kitchen_display_screen"],
     "data": [

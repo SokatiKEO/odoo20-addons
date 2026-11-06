@@ -16,7 +16,7 @@ Features:
 - Dynamic screen selector in the UI to add or toggle preparation screens at any time.
 - Mobile-compatible responsive layout for phones, tablets, and desktops.
 """,
-    "author": "",
+    "author": "SMG",
     "license": "LGPL-3",
     "depends": [
         "point_of_sale",

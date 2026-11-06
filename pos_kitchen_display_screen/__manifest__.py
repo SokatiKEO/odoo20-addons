@@ -12,7 +12,7 @@ Features:
 - Displays the custom table name from `pos_table_name` in the Kitchen Display Screen card header.
 - Displays real-time preparation status badges ('Ready' and 'Served') with color indicators on POS cashier cart lines.
 """,
-    "author": "",
+    "author": "SMG",
     "license": "LGPL-3",
     "depends": ["pos_enterprise", "pos_restaurant", "pos_table_name", "pos_self_order"],
     "data": [],

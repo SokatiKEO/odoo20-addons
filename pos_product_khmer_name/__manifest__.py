@@ -13,7 +13,7 @@ POS Product Khmer Name
   * Kitchen Display Screen (Orderline product name, Image Preview dialog, Sidebar Category product list)
   * Customer Self-Order (Product Cards, Product Detail page, Combo Selection page, Cart page, Product Info popup)
 """,
-    "author": "",
+    "author": "SMG",
     "license": "LGPL-3",
     "depends": [
         "point_of_sale",

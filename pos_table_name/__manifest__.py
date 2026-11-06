@@ -13,6 +13,7 @@ in addition to the numeric Table Number:
 - POS Order header/navbar, Ticket Screen, Order Details dialog, and Split Bill naming
 - POS Customer Receipt and Kitchen/Preparation Receipt
 """,
+    "author": "SMG",
     'depends': ['pos_restaurant'],
     'data': [
         'views/pos_restaurant_views.xml',

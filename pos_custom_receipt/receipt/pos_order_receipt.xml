@@ -150,7 +150,7 @@
             </xpath>
         </template>
 
-        <template id="pos_custom_receipt.pos_order_receipt" inherit_id="point_of_sale.pos_order_receipt">
+        <template id="pos_custom_receipt.pos_order_receipt" inherit_id="point_of_sale.pos_order_receipt" priority="99">
             <xpath expr="//html[@id='pos-receipt']/div[1]" position="replace">
                 <t t-set="custom" t-value="extra_data['custom_receipt']"/>
                 <div class="pos-receipt ym-receipt" t-attf-style="font-size: {{custom['font_size']}}px;">

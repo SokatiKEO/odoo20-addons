@@ -58,4 +58,3 @@ class ProductProduct(models.Model):
         if "khmer_name" not in fields_list:
             fields_list.append("khmer_name")
         return fields_list
-

@@ -15,7 +15,7 @@ Customizes the Point of Sale Order Receipt in Odoo 20:
 - Optional customer signature line and customizable closing footer note
 - Configurable per POS shop in Point of Sale > Configuration > Settings
 """,
-    "author": "",
+    "author": "SMG",
     "license": "LGPL-3",
     "depends": [
         "point_of_sale",
